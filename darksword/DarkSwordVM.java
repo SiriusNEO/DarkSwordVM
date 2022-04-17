@@ -1,12 +1,11 @@
 package darksword;
 
-import darksword.interpreter.LLVMReader;
-import masterball.console.Config;
+import darksword.interpreter.Interpreter;
+import darksword.interpreter.ModuleBuilder;
+import masterball.compiler.share.error.CompileError;
 import masterball.console.Console;
 import masterball.console.error.ConsoleError;
 import masterball.debug.Timer;
-
-import java.io.InputStream;
 
 public class DarkSwordVM {
 
@@ -17,7 +16,7 @@ public class DarkSwordVM {
             Console console = new Console(args);
             if (console.showHelp || console.showVersion) return;
 
-            new LLVMReader((InputStream) Config.getArgValue(Config.Option.Input)).read();
+            new Interpreter().interpret();
 
             Timer.display();
         }
@@ -28,7 +27,11 @@ public class DarkSwordVM {
     }
 
     private static void errorHandle(Exception e) {
-        if (e instanceof ConsoleError) {
+        if (e instanceof CompileError) {
+            ((CompileError) e).tell();
+            throw new RuntimeException();
+        }
+        else if (e instanceof ConsoleError) {
             ((ConsoleError) e).tell();
             throw new RuntimeException();
         }

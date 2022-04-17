@@ -1,4 +1,7 @@
 // Generated from ../src/darksword/interpreter/generated/LLVMIR.g4 by ANTLR 4.7.2
+
+    package darksword.interpreter.generated;
+
 import org.antlr.v4.runtime.tree.ParseTreeListener;
 
 /**
@@ -7,15 +10,15 @@ import org.antlr.v4.runtime.tree.ParseTreeListener;
  */
 public interface LLVMIRListener extends ParseTreeListener {
 	/**
-	 * Enter a parse tree produced by {@link LLVMIRParser#llvmIR}.
+	 * Enter a parse tree produced by {@link LLVMIRParser#rootLLVMIR}.
 	 * @param ctx the parse tree
 	 */
-	void enterLlvmIR(LLVMIRParser.LlvmIRContext ctx);
+	void enterRootLLVMIR(LLVMIRParser.RootLLVMIRContext ctx);
 	/**
-	 * Exit a parse tree produced by {@link LLVMIRParser#llvmIR}.
+	 * Exit a parse tree produced by {@link LLVMIRParser#rootLLVMIR}.
 	 * @param ctx the parse tree
 	 */
-	void exitLlvmIR(LLVMIRParser.LlvmIRContext ctx);
+	void exitRootLLVMIR(LLVMIRParser.RootLLVMIRContext ctx);
 	/**
 	 * Enter a parse tree produced by {@link LLVMIRParser#targetInfo}.
 	 * @param ctx the parse tree
@@ -56,6 +59,26 @@ public interface LLVMIRListener extends ParseTreeListener {
 	 * @param ctx the parse tree
 	 */
 	void exitTargetTriple(LLVMIRParser.TargetTripleContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link LLVMIRParser#initExp}.
+	 * @param ctx the parse tree
+	 */
+	void enterInitExp(LLVMIRParser.InitExpContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link LLVMIRParser#initExp}.
+	 * @param ctx the parse tree
+	 */
+	void exitInitExp(LLVMIRParser.InitExpContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link LLVMIRParser#globalDecl}.
+	 * @param ctx the parse tree
+	 */
+	void enterGlobalDecl(LLVMIRParser.GlobalDeclContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link LLVMIRParser#globalDecl}.
+	 * @param ctx the parse tree
+	 */
+	void exitGlobalDecl(LLVMIRParser.GlobalDeclContext ctx);
 	/**
 	 * Enter a parse tree produced by {@link LLVMIRParser#funcHeader}.
 	 * @param ctx the parse tree
@@ -106,6 +129,16 @@ public interface LLVMIRListener extends ParseTreeListener {
 	 * @param ctx the parse tree
 	 */
 	void exitInstDest(LLVMIRParser.InstDestContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link LLVMIRParser#gepOffset}.
+	 * @param ctx the parse tree
+	 */
+	void enterGepOffset(LLVMIRParser.GepOffsetContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link LLVMIRParser#gepOffset}.
+	 * @param ctx the parse tree
+	 */
+	void exitGepOffset(LLVMIRParser.GepOffsetContext ctx);
 	/**
 	 * Enter a parse tree produced by {@link LLVMIRParser#phiBranch}.
 	 * @param ctx the parse tree

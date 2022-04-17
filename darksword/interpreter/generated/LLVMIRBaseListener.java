@@ -1,5 +1,8 @@
 // Generated from ../src/darksword/interpreter/generated/LLVMIR.g4 by ANTLR 4.7.2
 
+    package darksword.interpreter.generated;
+
+
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.tree.ErrorNode;
 import org.antlr.v4.runtime.tree.TerminalNode;
@@ -15,13 +18,13 @@ public class LLVMIRBaseListener implements LLVMIRListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
-	@Override public void enterLlvmIR(LLVMIRParser.LlvmIRContext ctx) { }
+	@Override public void enterRootLLVMIR(LLVMIRParser.RootLLVMIRContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
-	@Override public void exitLlvmIR(LLVMIRParser.LlvmIRContext ctx) { }
+	@Override public void exitRootLLVMIR(LLVMIRParser.RootLLVMIRContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *
@@ -70,6 +73,30 @@ public class LLVMIRBaseListener implements LLVMIRListener {
 	 * <p>The default implementation does nothing.</p>
 	 */
 	@Override public void exitTargetTriple(LLVMIRParser.TargetTripleContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterInitExp(LLVMIRParser.InitExpContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitInitExp(LLVMIRParser.InitExpContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterGlobalDecl(LLVMIRParser.GlobalDeclContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitGlobalDecl(LLVMIRParser.GlobalDeclContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *
@@ -130,6 +157,18 @@ public class LLVMIRBaseListener implements LLVMIRListener {
 	 * <p>The default implementation does nothing.</p>
 	 */
 	@Override public void exitInstDest(LLVMIRParser.InstDestContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterGepOffset(LLVMIRParser.GepOffsetContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitGepOffset(LLVMIRParser.GepOffsetContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *

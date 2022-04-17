@@ -1,4 +1,7 @@
 // Generated from ../src/darksword/interpreter/generated/LLVMIR.g4 by ANTLR 4.7.2
+
+    package darksword.interpreter.generated;
+
 import org.antlr.v4.runtime.tree.ParseTreeVisitor;
 
 /**
@@ -10,11 +13,11 @@ import org.antlr.v4.runtime.tree.ParseTreeVisitor;
  */
 public interface LLVMIRVisitor<T> extends ParseTreeVisitor<T> {
 	/**
-	 * Visit a parse tree produced by {@link LLVMIRParser#llvmIR}.
+	 * Visit a parse tree produced by {@link LLVMIRParser#rootLLVMIR}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
 	 */
-	T visitLlvmIR(LLVMIRParser.LlvmIRContext ctx);
+	T visitRootLLVMIR(LLVMIRParser.RootLLVMIRContext ctx);
 	/**
 	 * Visit a parse tree produced by {@link LLVMIRParser#targetInfo}.
 	 * @param ctx the parse tree
@@ -39,6 +42,18 @@ public interface LLVMIRVisitor<T> extends ParseTreeVisitor<T> {
 	 * @return the visitor result
 	 */
 	T visitTargetTriple(LLVMIRParser.TargetTripleContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link LLVMIRParser#initExp}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitInitExp(LLVMIRParser.InitExpContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link LLVMIRParser#globalDecl}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitGlobalDecl(LLVMIRParser.GlobalDeclContext ctx);
 	/**
 	 * Visit a parse tree produced by {@link LLVMIRParser#funcHeader}.
 	 * @param ctx the parse tree
@@ -69,6 +84,12 @@ public interface LLVMIRVisitor<T> extends ParseTreeVisitor<T> {
 	 * @return the visitor result
 	 */
 	T visitInstDest(LLVMIRParser.InstDestContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link LLVMIRParser#gepOffset}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitGepOffset(LLVMIRParser.GepOffsetContext ctx);
 	/**
 	 * Visit a parse tree produced by {@link LLVMIRParser#phiBranch}.
 	 * @param ctx the parse tree
