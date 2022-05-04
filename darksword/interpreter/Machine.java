@@ -1,45 +1,70 @@
 package darksword.interpreter;
 
+import darksword.console.Config;
 import darksword.interpreter.error.NoMainFunc;
-import darksword.interpreter.error.SegmentationFault;
+import darksword.interpreter.error.OutOfMemoryError;
+import darksword.interpreter.error.StackOverflowError;
+
 import masterball.compiler.middleend.llvmir.Value;
 import masterball.compiler.middleend.llvmir.constant.*;
 import masterball.compiler.middleend.llvmir.hierarchy.IRBlock;
 import masterball.compiler.middleend.llvmir.hierarchy.IRFunction;
 import masterball.compiler.middleend.llvmir.hierarchy.IRModule;
-import masterball.compiler.share.error.runtime.StackOverflowError;
 import masterball.compiler.share.lang.MxStar;
-import masterball.debug.Log;
 
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.Objects;
-import java.util.Stack;
+import java.io.InputStream;
+import java.io.PrintStream;
+import java.util.*;
 
 public class Machine {
+
+    // handle dfs
+    public static class StackLayer {
+        public Value retVal;
+        public int retAddr;
+        public IRBlock lastBlock;
+        public LinkedHashMap<Value, Integer> regScope;
+
+        public StackLayer(Value retVal, int retAddr, IRBlock lastBlock) {
+            this.retVal = retVal;
+            this.retAddr = retAddr;
+            this.lastBlock = lastBlock;
+            this.regScope = new LinkedHashMap<>();
+        }
+    }
+
     // cursor
     public int sp;
     public IRBlock curBlock, lastBlock;
-    // return register stack
-    public Stack<Value> retValStack;
-    public Stack<Integer> retAddrStack;
+    // stack
+    public Stack<StackLayer> runStack;
+
+    // env
+    public InputStream stdin;
+    public PrintStream stdout;
+    public Scanner scanner;
 
     // mem
-    private LinkedHashMap<Value, Integer> regStore; // i32
-    private LinkedHashMap<Integer, Byte> memory;
+    private LinkedHashMap<Value, Integer> glbRegScope;
+    private final byte[] memory;
+    private final boolean[] memValid;
 
     // 0 ~ heapStart-1 is for stack
-    private final static int __heapStart = 0x4000;
+    private final static int __heapStart = 0x400000;
     private int heapCur, stackCur;
 
     public Machine(IRModule module) {
+        stdin = (InputStream) Config.getArgValue(Config.Option.Stdin);
+        stdout = (PrintStream) Config.getArgValue(Config.Option.Stdout);
+        scanner = new Scanner(stdin);
+
         sp = 0;
         heapCur = __heapStart;
         stackCur = 0;
-        retValStack = new Stack<>();
-        retAddrStack = new Stack<>();
-        regStore = new LinkedHashMap<>();
-        memory = new LinkedHashMap<>();
+        runStack = new Stack<>();
+        glbRegScope = new LinkedHashMap<>();
+        memory = new byte[64*1024*1024];   //64MB
+        memValid = new boolean[64*1024*1024];
 
         // booting
         for (IRFunction function : module.functions) {
@@ -61,23 +86,14 @@ public class Machine {
                         dat = ((BoolConst) glbVar.initValue).constData ? 1 : 0;
                     }
 
-                    for (int i = 0; i < 4; i++) {
-                        // Big-Endian
-                        store(heapCur, (byte) (dat >> 8*(3-i) & 0xff));
-                        ++heapCur;
-                    }
-
                     // first address
-                    regWrite(glbVar, heapCur);
-
-                    for (int i = 0; i < 4; i++) {
-                        store(heapCur, (byte) (dat >> 8*(3-i) & 0xff));
-                        ++heapCur;
-                    }
+                    int addr = libcMalloc(4);
+                    regWrite(glbVar, addr);
+                    storeBySize(addr, dat, 4);
                 }
 
                 for (StringConst strCst : module.stringConstSeg) {
-                    // todo
+                    regWrite(strCst, strMalloc(strCst.constData));
                 }
 
                 return;
@@ -88,15 +104,20 @@ public class Machine {
     }
 
     public int load(int addr) {
-        var ret = memory.get(addr);
-        if (ret == null) {
-            throw new SegmentationFault("load in " + addr);
+        if (!memValid[addr]) {
+            throw new OutOfMemoryError("load in " + addr);
         }
+        int ret = memory[addr];
+        // Log.info("load [" + ret + "] from [" + addr + "]");
         return ret & 0xff;
     }
 
     public void store(int addr, byte data) {
-        memory.put(addr, data);
+        if (!memValid[addr]) {
+            throw new OutOfMemoryError("load in " + addr);
+        }
+        memory[addr] = data;
+        // Log.info("store [" + data + "] to [" + addr + "]");
     }
 
     public int regRead(Value reg) {
@@ -110,17 +131,30 @@ public class Machine {
             return 0;
         }
 
-        var ret = regStore.get(reg);
-        if (ret == null) {
-            throw new SegmentationFault("read reg " + reg.identifier());
+        Integer ret = null;
+        if (reg instanceof GlobalValue) {
+            ret = glbRegScope.get(reg);
         }
-        Log.info("regRead [" + ret + "] from [" + reg.identifier() + "]");
+        else {
+            ret = runStack.peek().regScope.get(reg);
+        }
+
+        if (ret == null) {
+            throw new OutOfMemoryError("read reg " + reg.identifier());
+        }
+        // Log.info("regRead [" + ret + "] from [" + reg.identifier() + "]");
         return ret;
     }
 
     public void regWrite(Value reg, Integer data) {
-        Log.info("regWrite [" + data + "] to [" + reg.identifier() + "]");
-        regStore.put(reg, data);
+        // Log.info("regWrite [" + data + "] to [" + reg.identifier() + "]");
+
+        if (reg instanceof GlobalValue) {
+            glbRegScope.put(reg, data);
+        }
+        else {
+            runStack.peek().regScope.put(reg, data);
+        }
     }
 
     public int alloc(int size) {
@@ -128,87 +162,154 @@ public class Machine {
             throw new StackOverflowError();
         }
         int ret = stackCur;
+        for (int i = stackCur; i < stackCur+size; ++i)
+            memValid[i] = true;
+        storeBySize(stackCur, 0, size); // initialize 0
         stackCur += size;
         return ret;
+    }
+
+    public int loadBySize(int addr, int size) {
+        int loadData = 0;
+        for (int i = 0; i < size; ++i) {
+            // Big-Endian load
+            loadData = (loadData << 8) + load(addr);
+            addr++;
+        }
+        // Log.info(loadData);
+        return loadData;
+    }
+
+    public int storeBySize(int addr, int dat, int size) {
+        for (int i = 0; i < size; i++) {
+            // Log.info((int) (byte) ((dat >> 8*(size-1-i) & 0xff)));
+            // Big-Endian
+            store(addr, (byte) (dat >> 8*(size-1-i) & 0xff));
+            ++addr;
+        }
+        return addr;
+    }
+
+    private int strMalloc(String str) {
+        byte[] dat = str.getBytes();
+        int ret = libcMalloc(dat.length), addr = ret;
+        for (byte b : dat) {
+            store(addr, b);
+            ++addr;
+        }
+        return ret;
+    }
+
+    private String strLoad(int addr) {
+        ArrayList<Byte> bytes = new ArrayList<>();
+
+        while (true) {
+            byte byt = (byte) load(addr);
+            bytes.add(byt);
+            if (byt == 0) {
+                break;
+            }
+            ++addr;
+        }
+
+        byte[] dat = new byte[bytes.size()];
+
+        for (int i = 0; i < dat.length; ++i)
+            dat[i] = bytes.get(i);
+
+        String ret = new String(dat);
+        return ret.substring(0, ret.length()-1); // emit /0
     }
 
     // libc
 
     public int libcMalloc(int size) {
         int ret = heapCur;
+        for (int i = heapCur; i < heapCur+size; ++i)
+            memValid[i] = true;
         heapCur += size;
         return ret;
     }
 
-    public int libcStrCat(int str1, int str2) {
-        return 0;
+    public int libcStrCat(int addr1, int addr2) {
+        String str1 = strLoad(addr1), str2 = strLoad(addr2);
+        return strMalloc(str1 + str2 + "\0");
     }
 
-    public boolean libcStrEq(int str1, int str2) {
-        return false;
+    public boolean libcStrEq(int addr1, int addr2) {
+        String str1 = strLoad(addr1), str2 = strLoad(addr2);
+        return str1.equals(str2);
     }
     
-    public boolean libcStrNeq(int str1, int str2) {
-        return false;
+    public boolean libcStrNe(int addr1, int addr2) {
+        String str1 = strLoad(addr1), str2 = strLoad(addr2);
+        return !str1.equals(str2);
     }
 
-    public boolean libcStrSlt(int str1, int str2) {
-        return false;
+    public boolean libcStrSlt(int addr1, int addr2) {
+        String str1 = strLoad(addr1), str2 = strLoad(addr2);
+        return str1.compareTo(str2) < 0;
     }
 
-    public boolean libcStrSle(int str1, int str2) {
-        return false;
+    public boolean libcStrSle(int addr1, int addr2) {
+        String str1 = strLoad(addr1), str2 = strLoad(addr2);
+        return str1.compareTo(str2) <= 0;
     }
 
-    public boolean libcStrSgt(int str1, int str2) {
-        return false;
+    public boolean libcStrSgt(int addr1, int addr2) {
+        String str1 = strLoad(addr1), str2 = strLoad(addr2);
+        return str1.compareTo(str2) > 0;
     }
 
-    public boolean libcStrSge(int str1, int str2) {
-        return false;
+    public boolean libcStrSge(int addr1, int addr2) {
+        String str1 = strLoad(addr1), str2 = strLoad(addr2);
+        return str1.compareTo(str2) >= 0;
     }
 
-    public void libcPrint(int str) {
-
+    public void libcPrint(int addr) {
+        String str = strLoad(addr);
+        stdout.print(str);
     }
 
-    public void libcPrintln(int str) {
-
+    public void libcPrintln(int addr) {
+        String str = strLoad(addr);
+        stdout.println(str);
     }
 
     public void libcPrintInt(int num) {
-
+        stdout.print(num);
     }
 
     public void libcPrintlnInt(int num) {
-
+        stdout.println(num);
     }
 
     public int libcGetString() {
-        return 0;
+        String str = scanner.next();
+        return strMalloc(str + "\0");
     }
 
     public int libcGetInt() {
-        return 0;
+        return scanner.nextInt();
     }
 
     public int libcToString(int num) {
-        return 0;
+        return strMalloc(num + "\0");
     }
 
-    public int libcStrLength(int str) {
-        return 0;
+    public int libcStrLength(int addr) {
+        return strLoad(addr).length();
     }
 
-    public int libcStrSubstring(int str, int left, int right) {
-        return 0;
+    public int libcStrSubstring(int addr, int left, int right) {
+        return strMalloc(strLoad(addr).substring(left, right) + "\0");
     }
 
-    public int libcStrParseInt(int str) {
-        return 0;
+    public int libcStrParseInt(int addr) {
+        return Integer.parseInt(strLoad(addr));
     }
 
-    public int libcStrOrd(int str, int pos) {
-        return 0;
+    public int libcStrOrd(int addr, int pos) {
+        return strLoad(addr).charAt(pos);
     }
 }

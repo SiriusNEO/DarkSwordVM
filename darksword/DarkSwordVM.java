@@ -1,15 +1,19 @@
 package darksword;
 
+import darksword.console.Console;
 import darksword.interpreter.Interpreter;
-import darksword.interpreter.ModuleBuilder;
+import darksword.interpreter.error.VirtualMachineError;
 import masterball.compiler.share.error.CompileError;
-import masterball.console.Console;
 import masterball.console.error.ConsoleError;
+import masterball.debug.Log;
 import masterball.debug.Timer;
+
+import java.util.Arrays;
 
 public class DarkSwordVM {
 
     public static void main(String[] args) throws Exception {
+
         try {
             Timer.start();
 
@@ -29,6 +33,10 @@ public class DarkSwordVM {
     private static void errorHandle(Exception e) {
         if (e instanceof CompileError) {
             ((CompileError) e).tell();
+            throw new RuntimeException();
+        }
+        else if (e instanceof VirtualMachineError) {
+            ((VirtualMachineError) e).tell();
             throw new RuntimeException();
         }
         else if (e instanceof ConsoleError) {

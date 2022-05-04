@@ -5,7 +5,7 @@ grammar LLVMIR;
     package darksword.interpreter.generated;
 }
 
-rootLLVMIR: (targetInfo | funcDecl | funcDef | globalDecl)* EOF;
+rootLLVMIR: (targetInfo | funcDecl | funcDef | globalDecl | classDecl)* EOF;
 
 // target info
 targetInfo: sourceFn | dataLayout | targetTriple;
@@ -15,12 +15,18 @@ targetTriple: 'target' 'triple' '=' InfoStr;
 
 // globalDecl
 initExp: (atom | 'zeroinitializer');
-globalDecl: GlobalReg '=' 'global' type initExp align?;
+globalDecl: GlobalReg '=' LinkageType? PreemptionSpecifiers? VisibilityStyles? UnnamedAddr? GlobalWord type initExp alignment?;
+
+// class
+classDecl: LocalReg '=' 'type' '{' type (',' type)* '}';
 
 // function
-funcHeader: GlobalReg '(' (type LocalReg? (',' type LocalReg?)*)? ')';
-funcDecl: 'declare' type funcHeader;
-funcDef: 'define' type funcHeader '{' (basicBlock)* '}';
+funcCall:  ParaAttr? type GlobalReg '(' (type atom? (',' type atom?)*)? ')';
+funcInfo:  LinkageType? PreemptionSpecifiers? VisibilityStyles? type
+           GlobalReg '(' (type LocalReg? (',' type LocalReg?)*)? ')'
+           UnnamedAddr? FuncAttr?;
+funcDecl: 'declare' funcInfo ;
+funcDef: 'define' funcInfo '{' (basicBlock)* '}';
 
 // block
 basicBlock: Identifier ':' (instruction)*;
@@ -30,33 +36,32 @@ instDest: LocalReg '=';
 
 gepOffset: ',' type atom;
 phiBranch: '[' atom ',' atom ']';
+cmpOp: 'sgt' | 'sge' | 'slt' | 'sle' | 'eq' | 'ne';
+binaryOp: 'add' | 'sub' | 'mul' | 'sdiv' | 'srem' | 'shl' | 'ashr' | 'and' | 'or' | 'xor';
 
 instruction
-    :   instDest 'alloca' type align?                                #alloca
-    |   instDest (binaryOp = 'add' | 'sub' | 'mul' | 'sdiv' | 'srem' | 'shl' | 'ashr' | 'and' | 'or' | 'xor')
-        type (lsrc = atom) ',' (rsrc = atom)                         #binary
-    |   instDest '=' 'bitcast' type (src = atom) 'to' type           #bitcast
+    :   instDest 'alloca' type alignment?                            #alloca
+    |   instDest binaryOp type (lsrc = atom) ',' (rsrc = atom)       #binary
+    |   instDest 'bitcast' type (src = atom) 'to' type           #bitcast
     |   instDest 'trunc'   type (src = atom) 'to' type               #trunc
     |   instDest 'zext'    type (src = atom) 'to' type               #zext
     |   'br' type (src = atom) ',' type atom ',' type atom           #br
     |   'br' type atom                                               #br
-    |   instDest? 'call' type funcHeader                             #call
-    |   instDest 'getelementptr'
+    |   instDest? 'call' funcCall                                    #call
+    |   instDest 'getelementptr' 'inbounds'?
         type ',' type (src = atom) (gepOffset)*                      #getelementptr
-    |   instDest 'icmp'
-        (cmpOp = 'sgt' | 'sge' | 'slt' | 'sle' | 'eq' | 'ne')
-        type (lsrc = atom) (rsrc = atom)                             #icmp
-    |   instDest 'load'  type ',' type atom align?                   #load
-    |   'store' type atom ',' type atom align?                       #store
+    |   instDest 'icmp' cmpOp type (lsrc = atom) ',' (rsrc = atom)   #icmp
+    |   instDest 'load'  type ',' type atom alignment?               #load
+    |   'store' type atom ',' type atom alignment?                   #store
     |   'ret' type (atom)?                                           #ret
     |   instDest 'phi' type phiBranch (',' phiBranch)*               #phi
     ;
 
 // atom
-atom:  integerConstant | stringConstant | NullptrConstant | BoolConstant | GlobalReg | LocalReg;
+atom:  integerConstant | StringConstant | NullptrConstant | BoolConstant | GlobalReg | LocalReg;
 
 // align
-align: ',' 'align' IntegerLiteral;
+alignment: ',' 'align' IntegerLiteral;
 
 // type
 type: type (pointer = '*') | basicType | arrayType;
@@ -75,9 +80,19 @@ LocalReg: '%' Identifier;
 integerConstant: IntegerLiteral | '-' IntegerLiteral;
 NullptrConstant: 'null';
 BoolConstant: 'true' | 'false';
-stringConstant
-    :   'c"' (EscapeEnter | EscapeBackslash | EscapeQuote | StringLiteral)*? '\\00"'
+StringConstant
+    :   'c"' (EscapeEnter | EscapeBackslash | EscapeQuote | StringLiteral)*? EndZero '"'
     ;
+
+// llvm. ref: https://llvm.org/docs/LangRef.html
+
+LinkageType: 'private' | 'common' | 'internal' | 'external';
+PreemptionSpecifiers: 'dso_preemptable' | 'dso_local';
+VisibilityStyles: 'default' | 'hidden' | 'protected';
+GlobalWord: 'global' | 'constant';
+UnnamedAddr: 'unnamed_addr' | 'local_unnamed_addr';
+FuncAttr: 'nounwind';
+ParaAttr: 'noalias';
 
 // basic
 IntegerLiteral: '0' | [1-9][0-9]*;
@@ -89,6 +104,7 @@ NewlineEater: ('\r' '\n'?| '\n') -> skip ;
 LineCommentEater: ';' ~[\r\n]* -> skip ;
 
 // string (must after eater)
+EndZero: '\\00';
 EscapeEnter: '\\n';
 EscapeBackslash: '\\\\';
 EscapeQuote: '\\"';

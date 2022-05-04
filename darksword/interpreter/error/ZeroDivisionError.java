@@ -1,8 +1,6 @@
 package darksword.interpreter.error;
 
-import masterball.compiler.share.error.RuntimeError;
-
-public class ZeroDivisionError extends RuntimeError {
+public class ZeroDivisionError extends VirtualMachineError {
     public ZeroDivisionError() {
         super("divided by Zero!");
     }

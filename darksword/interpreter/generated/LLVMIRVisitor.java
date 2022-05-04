@@ -55,11 +55,23 @@ public interface LLVMIRVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitGlobalDecl(LLVMIRParser.GlobalDeclContext ctx);
 	/**
-	 * Visit a parse tree produced by {@link LLVMIRParser#funcHeader}.
+	 * Visit a parse tree produced by {@link LLVMIRParser#classDecl}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
 	 */
-	T visitFuncHeader(LLVMIRParser.FuncHeaderContext ctx);
+	T visitClassDecl(LLVMIRParser.ClassDeclContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link LLVMIRParser#funcCall}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitFuncCall(LLVMIRParser.FuncCallContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link LLVMIRParser#funcInfo}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitFuncInfo(LLVMIRParser.FuncInfoContext ctx);
 	/**
 	 * Visit a parse tree produced by {@link LLVMIRParser#funcDecl}.
 	 * @param ctx the parse tree
@@ -96,6 +108,18 @@ public interface LLVMIRVisitor<T> extends ParseTreeVisitor<T> {
 	 * @return the visitor result
 	 */
 	T visitPhiBranch(LLVMIRParser.PhiBranchContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link LLVMIRParser#cmpOp}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitCmpOp(LLVMIRParser.CmpOpContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link LLVMIRParser#binaryOp}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitBinaryOp(LLVMIRParser.BinaryOpContext ctx);
 	/**
 	 * Visit a parse tree produced by the {@code alloca}
 	 * labeled alternative in {@link LLVMIRParser#instruction}.
@@ -194,11 +218,11 @@ public interface LLVMIRVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitAtom(LLVMIRParser.AtomContext ctx);
 	/**
-	 * Visit a parse tree produced by {@link LLVMIRParser#align}.
+	 * Visit a parse tree produced by {@link LLVMIRParser#alignment}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
 	 */
-	T visitAlign(LLVMIRParser.AlignContext ctx);
+	T visitAlignment(LLVMIRParser.AlignmentContext ctx);
 	/**
 	 * Visit a parse tree produced by {@link LLVMIRParser#type}.
 	 * @param ctx the parse tree
@@ -223,10 +247,4 @@ public interface LLVMIRVisitor<T> extends ParseTreeVisitor<T> {
 	 * @return the visitor result
 	 */
 	T visitIntegerConstant(LLVMIRParser.IntegerConstantContext ctx);
-	/**
-	 * Visit a parse tree produced by {@link LLVMIRParser#stringConstant}.
-	 * @param ctx the parse tree
-	 * @return the visitor result
-	 */
-	T visitStringConstant(LLVMIRParser.StringConstantContext ctx);
 }
