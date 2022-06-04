@@ -36,24 +36,28 @@ public class CmdDoc {
                     ret.append("Redirect the input of the compiler\n");
                     break;
                 }
+                case LogOutput: {
+                    ret.append("Redirect the log output path of the compiler\n");
+                    break;
+                }
                 case OJMode: {
                     ret.append("Automatically fitted to Online Judge\n");
                     break;
                 }
                 case Stdin: {
-                    ret.append("Standard Input of this VM.\n");
+                    ret.append("Standard Input of this VM\n");
                     break;
                 }
                 case Stdout: {
-                    ret.append("Standard Output of this VM.\n");
+                    ret.append("Standard Output of this VM\n");
                     break;
                 }
                 case LibRavel: {
-                    ret.append("The absolute path of the libravel-sim.so file.\n");
+                    ret.append("The absolute path of the libravel-sim.so file\n");
                     break;
                 }
                 case JIT: {
-                    ret.append("Start JIT mode (otherwise only the interpreter is running).");
+                    ret.append("Start JIT mode (otherwise only the interpreter is running)");
                     break;
                 }
             }
