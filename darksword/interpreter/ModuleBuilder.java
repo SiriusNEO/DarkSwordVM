@@ -6,6 +6,7 @@ import darksword.interpreter.error.InternalError;
 import darksword.interpreter.generated.LLVMIRBaseVisitor;
 import darksword.interpreter.generated.LLVMIRLexer;
 import darksword.interpreter.generated.LLVMIRParser;
+import masterball.compiler.middleend.analyzer.CFGBuilder;
 import masterball.compiler.middleend.llvmir.User;
 import masterball.compiler.middleend.llvmir.Value;
 import masterball.compiler.middleend.llvmir.constant.*;
@@ -24,6 +25,7 @@ import org.antlr.v4.runtime.tree.TerminalNode;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.Objects;
 
@@ -38,6 +40,8 @@ public class ModuleBuilder extends LLVMIRBaseVisitor<Value> {
             workList.add(this);
         }
     }
+
+    private final LinkedHashMap<IRBlock, LLVMIRParser.BasicBlockContext> blockCtx = new LinkedHashMap<>();
 
     public IRModule irModule = new IRModule();
 
@@ -68,6 +72,8 @@ public class ModuleBuilder extends LLVMIRBaseVisitor<Value> {
                 user.resetOperand(user.operands.indexOf(onlyName), valueMap.get(onlyName.name));
             }
         }
+
+        Log.info("Build Module finish from .ll file.");
     }
 
     private Value newValue(String name, IRBaseType type) {
@@ -246,18 +252,43 @@ public class ModuleBuilder extends LLVMIRBaseVisitor<Value> {
     public Value visitBasicBlock(LLVMIRParser.BasicBlockContext ctx) {
         IRBlock block = new IRBlock(ctx.Identifier().getText(), null);
         setNewValue(block.name, block);
+        blockCtx.put(block, ctx);
         return block;
     }
 
     // this part is instructions
+    // CFG order!
 
-    public void deepToInst(LLVMIRParser.FuncDefContext ctx) {
+    private void deepToInst(LLVMIRParser.FuncDefContext ctx) {
+        HashSet<IRBlock> visited = new HashSet<>();
+
         for (int i = 0; i < ctx.basicBlock().size(); ++i) {
-            for (var instCtx : ctx.basicBlock(i).instruction()) {
-                IRBaseInst inst = (IRBaseInst) visit(instCtx);
-                inst.setParentBlock((IRBlock) valueMap.get(ctx.basicBlock(i).Identifier().getText()));
-                rowMarker.put(inst, new RowMark(instCtx.getStart().getLine(), inst.format()));
+            deepToInst(ctx.basicBlock().get(i), visited);
+        }
+    }
+
+    private void deepToInst(LLVMIRParser.BasicBlockContext ctx, HashSet<IRBlock> visited) {
+        IRBlock block = (IRBlock) valueMap.get(ctx.Identifier().getText());
+
+        if (visited.contains(block)) return;
+        visited.add(block);
+
+        for (var instCtx : ctx.instruction()) {
+            IRBaseInst inst = (IRBaseInst) visit(instCtx);
+            inst.setParentBlock(block);
+            rowMarker.put(inst, new RowMark(instCtx.getStart().getLine(), inst.format()));
+        }
+
+        if (block.terminator() instanceof IRBrInst) {
+            if (((IRBrInst) block.terminator()).isJump()) {
+                deepToInst(blockCtx.get(((IRBrInst) block.terminator()).destBlock()), visited);
+            } else {
+                deepToInst(blockCtx.get(((IRBrInst) block.terminator()).ifTrueBlock()), visited);
+                deepToInst(blockCtx.get(((IRBrInst) block.terminator()).ifFalseBlock()), visited);
             }
+        }
+        else if (block.terminator() instanceof IRRetInst) {
+            block.parentFunction.exitBlock = block;
         }
     }
 

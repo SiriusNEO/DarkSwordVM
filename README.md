@@ -23,5 +23,5 @@ Drag the directory `darksword` into the `src` directory in [Masterball](https://
 ## TODO
 
 - [x] Interpreter (`Masterball FrontEnd + DarkSword Interpreter ` passed all codegen testcases.)
-- [ ] Simple JIT (method-based or BB-based...), context switch between JIT and Interpreter
+- [x] Simple JIT (method-based or BB-based...), context switch between JIT and Interpreter
 - [ ] JIT Optimization

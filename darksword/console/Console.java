@@ -10,7 +10,7 @@ import java.util.Objects;
 
 public class Console {
 
-    public boolean showVersion, showHelp, ojMode;
+    public boolean showVersion, showHelp, ojMode, jitMode;
 
     public static String getFileName(String path) {
         if (path == null) return "test";
@@ -53,6 +53,9 @@ public class Console {
                                 Config.argSetting.get(option).argValue = new PrintStream(path);
                                 break;
                             }
+                            default: {
+                                Config.argSetting.get(option).argValue = path;
+                            }
                         }
                     } else {
                         Config.argSetting.get(option).argValue = true;
@@ -67,6 +70,7 @@ public class Console {
          showHelp = (boolean) Config.argSetting.get(Config.Option.Help).argValue;
          showVersion = (boolean) Config.argSetting.get(Config.Option.Version).argValue;
          ojMode = (boolean) Config.argSetting.get(Config.Option.OJMode).argValue;
+         jitMode = (boolean) Config.argSetting.get(Config.Option.JIT).argValue;
     }
 
     public Console(String[] args) throws Exception {

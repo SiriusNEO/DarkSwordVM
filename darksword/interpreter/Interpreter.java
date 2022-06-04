@@ -1,8 +1,17 @@
 package darksword.interpreter;
 
+import darksword.console.Console;
 import darksword.console.display.Displayer;
 import darksword.interpreter.error.InternalError;
 import darksword.interpreter.error.ZeroDivisionError;
+import darksword.jit.CodeGenerator;
+import darksword.jit.JITCompiler;
+import darksword.jit.JITScheduler;
+import darksword.jit.Profiler;
+import darksword.ravel.RavelControl;
+import masterball.compiler.backend.rvasm.hierarchy.AsmFunction;
+import masterball.compiler.middleend.llvmir.constant.GlobalVariable;
+import masterball.compiler.middleend.llvmir.hierarchy.IRFunction;
 import masterball.compiler.middleend.llvmir.inst.*;
 import masterball.compiler.middleend.llvmir.type.ArrayType;
 import masterball.compiler.middleend.llvmir.type.IRBaseType;
@@ -11,22 +20,40 @@ import masterball.compiler.middleend.llvmir.type.StructType;
 import masterball.compiler.share.lang.LLVM;
 import masterball.compiler.share.pass.InstVisitor;
 import masterball.debug.Log;
+import masterball.debug.Statistics;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 
 public class Interpreter implements InstVisitor {
 
     private final Machine machine;
     private final ModuleBuilder builder;
 
-    public Interpreter() throws IOException {
-        builder = new ModuleBuilder();
-        Log.info("Build finish from .ll file.");
+    private final Profiler profiler;
+    private final JITCompiler compiler;
+    private final JITScheduler scheduler;
+    private final CodeGenerator generator;
 
+    public Interpreter(Console console) throws IOException {
+        builder = new ModuleBuilder();
         machine = new Machine(builder.irModule);
-        Log.info("Virtual machine booted. Able to interpret now.");
+
+        if (console.jitMode) {
+            profiler = new Profiler(builder.irModule);
+            compiler = new JITCompiler(builder.irModule);
+            scheduler = new JITScheduler();
+            generator = new CodeGenerator(compiler.builder.module);
+            RavelControl.connect("Hello, ravel");
+            Log.info("Test ravel connection finish. Interpreter ready.");
+        }
+        else {
+            profiler = null;
+            compiler = null;
+            scheduler = null;
+            generator = null;
+            Log.info("Interpreter ready.");
+        }
     }
 
     // interpret curBlock
@@ -36,24 +63,84 @@ public class Interpreter implements InstVisitor {
         IRCallInst exitCode = new IRCallInst(machine.curBlock.parentFunction, null); // just a pseudo "call main"
         machine.runStack.push(new Machine.StackLayer(exitCode, -1, null)); // sp == -1: terminated
 
-        while (machine.sp >= 0) {
+        if (profiler != null)
+            profiler.funcInvalidSubmit(machine.curBlock.parentFunction); // can JIT main?
+
+        while (machine.cursor >= 0) {
             IRBaseInst curInst;
-            if (machine.sp < machine.curBlock.phiInsts.size()) {
-                curInst = machine.curBlock.phiInsts.get(machine.sp);
+            if (machine.cursor < machine.curBlock.phiInsts.size()) {
+                curInst = machine.curBlock.phiInsts.get(machine.cursor);
             }
             else {
-                curInst = machine.curBlock.instructions.get(machine.sp - machine.curBlock.phiInsts.size());
+                curInst = machine.curBlock.instructions.get(machine.cursor - machine.curBlock.phiInsts.size());
             }
-            Displayer.interpretRow(builder.rowMarker.get(curInst));
-            curInst.accept(this);
+            // Displayer.interpretRow(builder.rowMarker.get(curInst));
+
+            boolean invokeRavel = false;
+
+            // call others
+            if (profiler != null) {
+                if (curInst instanceof IRCallInst) {
+                    if (((IRCallInst) curInst).callFunc() != machine.curBlock.parentFunction
+                            && builder.irModule.functions.contains(((IRCallInst) curInst).callFunc())) {
+                        profiler.funcInvalidSubmit(machine.curBlock.parentFunction);
+                    }
+
+                    if (builder.irModule.functions.contains(((IRCallInst) curInst).callFunc())) {
+                        if (profiler.isCompiled(((IRCallInst) curInst).callFunc())) {
+                            invokeRavel = true;
+                        } else {
+                            profiler.funcInterpretedSubmit(((IRCallInst) curInst).callFunc());
+                        }
+                    }
+                }
+
+                // modify global variables
+                if (curInst instanceof IRStoreInst && ((IRStoreInst) curInst).storePtr() instanceof GlobalVariable) {
+                    profiler.funcInvalidSubmit(machine.curBlock.parentFunction);
+                }
+            }
+
+            if (invokeRavel) {
+                int ravelRunningTime = machine.callRavel((IRCallInst) curInst, generator.codeStorage.get(
+                        (AsmFunction) ((IRCallInst) curInst).callFunc().asmOperand
+                ));
+                Statistics.plus("ravel", ravelRunningTime);
+                machine.regWrite(curInst, machine.regs[10]); // a0
+                machine.cursor++;
+            }
+            else {
+                curInst.accept(this);
+            }
+
+            if (scheduler != null) {
+                scheduler.update();
+                if (scheduler.signal()) {
+                    assert profiler != null;
+                    IRFunction hottest = profiler.hotSelect();
+                    if (hottest != null) {
+                        AsmFunction compiledFunc = compiler.compile(hottest);
+                        profiler.funcCompiledSubmit(hottest);
+                        generator.runOnFunc(compiledFunc);
+                        scheduler.reset();
+                    }
+                }
+            }
         }
         Displayer.interpretFinish(machine.regRead(exitCode));
+
+        /*
+        for (var entry : generator.codeStorage.entrySet()) {
+            Log.info("[compiled code]", entry.getKey().identifier);
+            Log.info(entry.getValue());
+        }
+        */
     }
 
     @Override
     public void visit(IRAllocaInst inst) {
         machine.regWrite(inst, machine.alloc(inst.allocaType.size()));
-        machine.sp = machine.sp + 1;
+        machine.cursor++;
     }
 
     @Override
@@ -86,13 +173,13 @@ public class Interpreter implements InstVisitor {
         }
 
         machine.regWrite(inst, result);
-        machine.sp = machine.sp + 1;
+        machine.cursor++;
     }
 
     @Override
     public void visit(IRBitCastInst inst) {
         machine.regWrite(inst, machine.regRead(inst.fromValue()));
-        machine.sp = machine.sp + 1;
+        machine.cursor++;
     }
 
     @Override
@@ -113,7 +200,7 @@ public class Interpreter implements InstVisitor {
             }
         }
 
-        machine.sp = 0;
+        machine.cursor = 0;
     }
 
     @Override
@@ -172,7 +259,7 @@ public class Interpreter implements InstVisitor {
             if (ret != null)
                 machine.regWrite(inst, ret);
 
-            machine.sp = machine.sp + 1;
+            machine.cursor++;
             return;
         }
 
@@ -194,7 +281,7 @@ public class Interpreter implements InstVisitor {
         machine.lastBlock = machine.curBlock;
         machine.curBlock = inst.callFunc().entryBlock;
 
-        machine.sp = 0;
+        machine.cursor = 0;
     }
 
     @Override
@@ -226,7 +313,7 @@ public class Interpreter implements InstVisitor {
 
         machine.regWrite(inst, machine.regRead(inst.headPointer()) + totalOff);
 
-        machine.sp = machine.sp + 1;
+        machine.cursor++;
     }
 
     @Override
@@ -246,7 +333,7 @@ public class Interpreter implements InstVisitor {
         }
 
         machine.regWrite(inst, result ? 1 : 0);
-        machine.sp = machine.sp + 1;
+        machine.cursor++;
     }
 
     @Override
@@ -256,7 +343,7 @@ public class Interpreter implements InstVisitor {
             throw new InternalError("mem op at most 4 bytes");
         }
         machine.regWrite(inst, machine.loadBySize(addr, size));
-        machine.sp = machine.sp + 1;
+        machine.cursor++;
     }
 
     @Override
@@ -264,7 +351,7 @@ public class Interpreter implements InstVisitor {
         for (int i = 0; i < inst.operandSize(); i += 2) {
             if (inst.getOperand(i+1) == machine.lastBlock) {
                 machine.regWrite(inst, machine.regRead(inst.getOperand(i)));
-                machine.sp = machine.sp + 1;
+                machine.cursor++;
                 return;
             }
         }
@@ -282,8 +369,9 @@ public class Interpreter implements InstVisitor {
 
         machine.lastBlock = machine.runStack.peek().lastBlock;
         machine.curBlock = call.parentBlock;
-        machine.sp = machine.runStack.peek().retAddr;
+        machine.cursor = machine.runStack.peek().retAddr;
 
+        machine.releaseStack();
         if(machine.runStack.size() > 1) machine.runStack.pop(); // do not pop last layer
         // in last scope: write
         if (!inst.isVoid()) machine.regWrite(call, ret);
@@ -299,19 +387,19 @@ public class Interpreter implements InstVisitor {
             throw new InternalError("mem op at most 4 bytes");
         }
         machine.storeBySize(addr, storeData, size);
-        machine.sp = machine.sp + 1;
+        machine.cursor++;
     }
 
     @Override
     public void visit(IRTruncInst inst) {
         machine.regWrite(inst, machine.regRead(inst.fromValue()));
-        machine.sp = machine.sp + 1;
+        machine.cursor++;
     }
 
     @Override
     public void visit(IRZextInst inst) {
         machine.regWrite(inst, machine.regRead(inst.fromValue()));
-        machine.sp = machine.sp + 1;
+        machine.cursor++;
     }
 
     @Override

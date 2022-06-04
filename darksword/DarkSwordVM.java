@@ -2,27 +2,34 @@ package darksword;
 
 import darksword.console.Console;
 import darksword.interpreter.Interpreter;
+import darksword.interpreter.Machine;
 import darksword.interpreter.error.VirtualMachineError;
+import darksword.ravel.RavelControl;
 import masterball.compiler.share.error.CompileError;
 import masterball.console.error.ConsoleError;
 import masterball.debug.Log;
+import masterball.debug.Statistics;
 import masterball.debug.Timer;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 
 public class DarkSwordVM {
 
     public static void main(String[] args) throws Exception {
-
         try {
-            Timer.start();
-
             Console console = new Console(args);
             if (console.showHelp || console.showVersion) return;
 
-            new Interpreter().interpret();
+            Interpreter interpreter = new Interpreter(console);
 
+            // for (int i = 1; i <= 1000000; ++i)
+            //    RavelControl.connect("test" + i);
+
+            Timer.start();
+            interpreter.interpret();
             Timer.display();
+            Statistics.show("ravel");
         }
         catch (Exception e) {
             errorHandle(e);

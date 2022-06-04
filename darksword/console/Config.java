@@ -1,5 +1,6 @@
 package darksword.console;
 
+import java.io.PrintStream;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -21,7 +22,7 @@ public class Config {
         }
     }
 
-    public enum Option {Version, Help, Input, LogOutput, OJMode, Stdin, Stdout};
+    public enum Option {Version, Help, Input, LogOutput, OJMode, Stdin, Stdout, LibRavel, JIT};
 
     public static Map<Option, Setting> argSetting = new LinkedHashMap<>();
 
@@ -37,6 +38,10 @@ public class Config {
 
         argSetting.put(Option.Stdin, new Setting("-stdin", true, System.in));
         argSetting.put(Option.Stdout, new Setting("-stdout", true, System.out));
+
+        argSetting.put(Option.LibRavel, new Setting("-ravel", true, ""));
+
+        argSetting.put(Option.JIT, new Setting("-jit", false, false));
     }
 
     public static String getPath(Option option) {

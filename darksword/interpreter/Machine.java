@@ -5,12 +5,19 @@ import darksword.interpreter.error.NoMainFunc;
 import darksword.interpreter.error.OutOfMemoryError;
 import darksword.interpreter.error.StackOverflowError;
 
+import darksword.ravel.RavelControl;
+import masterball.compiler.backend.rvasm.hierarchy.AsmFunction;
+import masterball.compiler.backend.rvasm.operand.PhysicalReg;
 import masterball.compiler.middleend.llvmir.Value;
 import masterball.compiler.middleend.llvmir.constant.*;
 import masterball.compiler.middleend.llvmir.hierarchy.IRBlock;
 import masterball.compiler.middleend.llvmir.hierarchy.IRFunction;
 import masterball.compiler.middleend.llvmir.hierarchy.IRModule;
+import masterball.compiler.middleend.llvmir.inst.IRCallInst;
 import masterball.compiler.share.lang.MxStar;
+import masterball.compiler.share.lang.RV32I;
+import masterball.debug.Log;
+import masterball.debug.Statistics;
 
 import java.io.InputStream;
 import java.io.PrintStream;
@@ -24,17 +31,19 @@ public class Machine {
         public int retAddr;
         public IRBlock lastBlock;
         public LinkedHashMap<Value, Integer> regScope;
+        public int stackUse;
 
         public StackLayer(Value retVal, int retAddr, IRBlock lastBlock) {
             this.retVal = retVal;
             this.retAddr = retAddr;
             this.lastBlock = lastBlock;
             this.regScope = new LinkedHashMap<>();
+            this.stackUse = 0;
         }
     }
 
-    // cursor
-    public int sp;
+    // cur
+    public int cursor;
     public IRBlock curBlock, lastBlock;
     // stack
     public Stack<StackLayer> runStack;
@@ -45,12 +54,19 @@ public class Machine {
     public Scanner scanner;
 
     // mem
-    private LinkedHashMap<Value, Integer> glbRegScope;
+    private final LinkedHashMap<Value, Integer> glbRegScope;
     private final byte[] memory;
-    private final boolean[] memValid;
+
+    // RISCV-32 registers
+    public final int[] regs;
+    public final int regNum = PhysicalReg.phyRegs.size(); // 32
 
     // 0 ~ heapStart-1 is for stack
-    private final static int __heapStart = 0x400000;
+    private final static int __machineMem = 64*1024*1024,
+                             __ravelTextSpace = 0x1000000,    // 16MB for ravel inst
+                             __stackSpace = 0x100000, // 1MB stack
+                             __ravelStackSpace = 0x100000;
+
     private int heapCur, stackCur;
 
     public Machine(IRModule module) {
@@ -58,13 +74,14 @@ public class Machine {
         stdout = (PrintStream) Config.getArgValue(Config.Option.Stdout);
         scanner = new Scanner(stdin);
 
-        sp = 0;
-        heapCur = __heapStart;
-        stackCur = 0;
+        cursor = 0;
+        heapCur = __ravelTextSpace;
+        stackCur = __machineMem - __ravelStackSpace;
         runStack = new Stack<>();
         glbRegScope = new LinkedHashMap<>();
-        memory = new byte[64*1024*1024];   //64MB
-        memValid = new boolean[64*1024*1024];
+
+        regs = new int[regNum];
+        memory = new byte[__machineMem];   //64MB
 
         // booting
         for (IRFunction function : module.functions) {
@@ -96,6 +113,7 @@ public class Machine {
                     regWrite(strCst, strMalloc(strCst.constData));
                 }
 
+                Log.info("Virtual machine booted. MemSize= ", this.memory.length, "(bytes)");
                 return;
             }
         }
@@ -103,8 +121,41 @@ public class Machine {
         throw new NoMainFunc();
     }
 
+    public void testRavel() {
+        Statistics.plus("test_ravel");
+        Statistics.show("test_ravel");
+        RavelControl.simulate(".text\n.globl main\nmain:\nnop\nret", this.regs, this.memory, __machineMem, false);
+    }
+
+    public int callRavel(IRCallInst call, String code) {
+        AsmFunction asmFunc = (AsmFunction) call.callFunc().asmOperand;
+
+        for (int i = 0; i < this.regNum; ++i) this.regs[i] = 0;
+        this.regs[2] = __machineMem - asmFunc.totalStackUse; // stack pointer.
+
+        // 0~7
+        for (int i = 0; i < Integer.min(call.callFunc().getArgNum(), RV32I.MaxArgRegNum); i++) {
+             // a0 ~ a7
+             this.regs[10+i] = this.regRead(call.getArg(i));
+        }
+
+        // spill to mem
+        for (int i = RV32I.MaxArgRegNum; i < call.callFunc().getArgNum(); i++) {
+            this.storeBySize(this.regs[2] + asmFunc.arguments.get(i).stackOffset.value,
+                             this.regRead(call.getArg(i)),
+                             call.getArg(i).type.size());
+        }
+
+        return RavelControl.simulate(
+                                code,
+                                this.regs,
+                                this.memory,
+                                __machineMem,
+                         false);
+    }
+
     public int load(int addr) {
-        if (!memValid[addr]) {
+        if (addr < __ravelTextSpace) {
             throw new OutOfMemoryError("load in " + addr);
         }
         int ret = memory[addr];
@@ -113,8 +164,8 @@ public class Machine {
     }
 
     public void store(int addr, byte data) {
-        if (!memValid[addr]) {
-            throw new OutOfMemoryError("load in " + addr);
+        if (addr < __ravelTextSpace) {
+            throw new OutOfMemoryError("store in " + addr);
         }
         memory[addr] = data;
         // Log.info("store [" + data + "] to [" + addr + "]");
@@ -158,15 +209,17 @@ public class Machine {
     }
 
     public int alloc(int size) {
-        if (stackCur >= __heapStart) {
+        if (stackCur <= __machineMem - __stackSpace - __ravelStackSpace) {
             throw new StackOverflowError();
         }
-        int ret = stackCur;
-        for (int i = stackCur; i < stackCur+size; ++i)
-            memValid[i] = true;
+        stackCur -= size;
+        runStack.peek().stackUse += size;
         storeBySize(stackCur, 0, size); // initialize 0
-        stackCur += size;
-        return ret;
+        return stackCur;
+    }
+
+    public void releaseStack() {
+        stackCur += runStack.peek().stackUse;
     }
 
     public int loadBySize(int addr, int size) {
@@ -225,8 +278,6 @@ public class Machine {
 
     public int libcMalloc(int size) {
         int ret = heapCur;
-        for (int i = heapCur; i < heapCur+size; ++i)
-            memValid[i] = true;
         heapCur += size;
         return ret;
     }
