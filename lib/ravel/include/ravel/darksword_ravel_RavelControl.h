@@ -21,7 +21,7 @@ JNIEXPORT jint JNICALL Java_darksword_ravel_RavelControl_connect
  * Signature: (Ljava/lang/String;[I[BIZ)I
  */
 JNIEXPORT jint JNICALL Java_darksword_ravel_RavelControl_simulate
-  (JNIEnv *, jclass, jstring, jintArray, jbyteArray, jint, jboolean);
+  (JNIEnv *, jclass, jstring, jstring, jintArray, jbyteArray, jint, jboolean);
 
 #ifdef __cplusplus
 }
