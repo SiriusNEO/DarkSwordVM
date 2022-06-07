@@ -18,10 +18,12 @@ import masterball.compiler.middleend.llvmir.type.*;
 import masterball.compiler.share.error.ParseErrorListener;
 import masterball.compiler.share.lang.LLVM;
 import masterball.debug.Log;
+import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.tree.TerminalNode;
 
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
@@ -50,9 +52,10 @@ public class ModuleBuilder extends LLVMIRBaseVisitor<Value> {
     public LinkedHashMap<Value, RowMark> rowMarker = new LinkedHashMap<>();
 
     public ModuleBuilder() throws IOException {
+
         // lexer
         LLVMIRLexer irLexer = new LLVMIRLexer(CharStreams.fromStream(
-                (InputStream) Config.getArgValue(Config.Option.Input)
+                new FileInputStream(Config.getPath(Config.Option.Input))
         ));
         irLexer.removeErrorListeners();
         irLexer.addErrorListener(new ParseErrorListener());
@@ -72,6 +75,7 @@ public class ModuleBuilder extends LLVMIRBaseVisitor<Value> {
                 user.resetOperand(user.operands.indexOf(onlyName), valueMap.get(onlyName.name));
             }
         }
+        RawOnlyName.workList.clear();
 
         Log.info("Build Module finish from .ll file.");
     }
@@ -142,7 +146,9 @@ public class ModuleBuilder extends LLVMIRBaseVisitor<Value> {
         }
 
         for (var funcDef : ctx.funcDef()) {
-            irModule.functions.add((IRFunction) visit(funcDef));
+            IRFunction function = (IRFunction) visit(funcDef);
+            function.parentModule = irModule;
+            irModule.functions.add(function);
         }
 
         // global & string

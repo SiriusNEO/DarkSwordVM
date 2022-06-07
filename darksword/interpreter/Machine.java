@@ -127,11 +127,10 @@ public class Machine {
         RavelControl.simulate(".text\n.globl main\nmain:\nnop\nret", this.regs, this.memory, __machineMem, false);
     }
 
-    public int callRavel(IRCallInst call, String code) {
-        AsmFunction asmFunc = (AsmFunction) call.callFunc().asmOperand;
+    public int callRavel(IRCallInst call, String code, AsmFunction compiledFunc) {
 
         for (int i = 0; i < this.regNum; ++i) this.regs[i] = 0;
-        this.regs[2] = __machineMem - asmFunc.totalStackUse; // stack pointer.
+        this.regs[2] = __machineMem - compiledFunc.totalStackUse; // stack pointer.
 
         // 0~7
         for (int i = 0; i < Integer.min(call.callFunc().getArgNum(), RV32I.MaxArgRegNum); i++) {
@@ -141,7 +140,11 @@ public class Machine {
 
         // spill to mem
         for (int i = RV32I.MaxArgRegNum; i < call.callFunc().getArgNum(); i++) {
-            this.storeBySize(this.regs[2] + asmFunc.arguments.get(i).stackOffset.value,
+            this.regs[2] -= call.getArg(i).type.size();
+        }
+
+        for (int i = RV32I.MaxArgRegNum; i < call.callFunc().getArgNum(); i++) {
+            this.storeBySize(this.regs[2] + compiledFunc.arguments.get(i).stackOffset.value,
                              this.regRead(call.getArg(i)),
                              call.getArg(i).type.size());
         }
@@ -154,7 +157,7 @@ public class Machine {
                          false);
     }
 
-    public int load(int addr) {
+    private int byteLoad(int addr) {
         if (addr < __ravelTextSpace) {
             throw new OutOfMemoryError("load in " + addr);
         }
@@ -163,7 +166,7 @@ public class Machine {
         return ret & 0xff;
     }
 
-    public void store(int addr, byte data) {
+    private void byteStore(int addr, byte data) {
         if (addr < __ravelTextSpace) {
             throw new OutOfMemoryError("store in " + addr);
         }
@@ -226,28 +229,25 @@ public class Machine {
         int loadData = 0;
         for (int i = 0; i < size; ++i) {
             // Big-Endian load
-            loadData = (loadData << 8) + load(addr);
-            addr++;
+            loadData = (loadData << 8) + byteLoad(addr+size-i-1);
         }
         // Log.info(loadData);
         return loadData;
     }
 
-    public int storeBySize(int addr, int dat, int size) {
+    public void storeBySize(int addr, int dat, int size) {
         for (int i = 0; i < size; i++) {
             // Log.info((int) (byte) ((dat >> 8*(size-1-i) & 0xff)));
-            // Big-Endian
-            store(addr, (byte) (dat >> 8*(size-1-i) & 0xff));
-            ++addr;
+            // Small-Endian
+            byteStore(addr+i, (byte) ((dat >> 8*i) & 0xff));
         }
-        return addr;
     }
 
     private int strMalloc(String str) {
         byte[] dat = str.getBytes();
         int ret = libcMalloc(dat.length), addr = ret;
         for (byte b : dat) {
-            store(addr, b);
+            byteStore(addr, b);
             ++addr;
         }
         return ret;
@@ -257,7 +257,7 @@ public class Machine {
         ArrayList<Byte> bytes = new ArrayList<>();
 
         while (true) {
-            byte byt = (byte) load(addr);
+            byte byt = (byte) byteLoad(addr);
             bytes.add(byt);
             if (byt == 0) {
                 break;

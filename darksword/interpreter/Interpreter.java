@@ -7,10 +7,10 @@ import darksword.interpreter.error.ZeroDivisionError;
 import darksword.jit.CodeGenerator;
 import darksword.jit.JITCompiler;
 import darksword.jit.JITScheduler;
-import darksword.jit.Profiler;
+import darksword.jit.FuncProfiler;
 import darksword.ravel.RavelControl;
+import masterball.compiler.backend.rvasm.AsmBuilder;
 import masterball.compiler.backend.rvasm.hierarchy.AsmFunction;
-import masterball.compiler.middleend.llvmir.constant.GlobalVariable;
 import masterball.compiler.middleend.llvmir.hierarchy.IRFunction;
 import masterball.compiler.middleend.llvmir.inst.*;
 import masterball.compiler.middleend.llvmir.type.ArrayType;
@@ -28,22 +28,23 @@ import java.util.ArrayList;
 public class Interpreter implements InstVisitor {
 
     private final Machine machine;
-    private final ModuleBuilder builder;
+    private final ModuleBuilder runningBuilder;
 
-    private final Profiler profiler;
+    private final FuncProfiler profiler;
     private final JITCompiler compiler;
     private final JITScheduler scheduler;
     private final CodeGenerator generator;
 
     public Interpreter(Console console) throws IOException {
-        builder = new ModuleBuilder();
-        machine = new Machine(builder.irModule);
+        runningBuilder = new ModuleBuilder();
+        machine = new Machine(runningBuilder.irModule);
+        new AsmBuilder().buildModuleSkeleton(runningBuilder.irModule); // give running IR some asmOperands...
 
         if (console.jitMode) {
-            profiler = new Profiler(builder.irModule);
-            compiler = new JITCompiler(builder.irModule);
+            profiler = new FuncProfiler(runningBuilder.irModule);
+            compiler = new JITCompiler();
             scheduler = new JITScheduler();
-            generator = new CodeGenerator(compiler.builder.module);
+            generator = new CodeGenerator(runningBuilder.irModule, machine);
             RavelControl.connect("Hello, ravel");
             Log.info("Test ravel connection finish. Interpreter ready.");
         }
@@ -63,9 +64,6 @@ public class Interpreter implements InstVisitor {
         IRCallInst exitCode = new IRCallInst(machine.curBlock.parentFunction, null); // just a pseudo "call main"
         machine.runStack.push(new Machine.StackLayer(exitCode, -1, null)); // sp == -1: terminated
 
-        if (profiler != null)
-            profiler.funcInvalidSubmit(machine.curBlock.parentFunction); // can JIT main?
-
         while (machine.cursor >= 0) {
             IRBaseInst curInst;
             if (machine.cursor < machine.curBlock.phiInsts.size()) {
@@ -74,19 +72,14 @@ public class Interpreter implements InstVisitor {
             else {
                 curInst = machine.curBlock.instructions.get(machine.cursor - machine.curBlock.phiInsts.size());
             }
-            // Displayer.interpretRow(builder.rowMarker.get(curInst));
+            // Displayer.interpretRow(runningBuilder.rowMarker.get(curInst));
 
             boolean invokeRavel = false;
 
             // call others
             if (profiler != null) {
                 if (curInst instanceof IRCallInst) {
-                    if (((IRCallInst) curInst).callFunc() != machine.curBlock.parentFunction
-                            && builder.irModule.functions.contains(((IRCallInst) curInst).callFunc())) {
-                        profiler.funcInvalidSubmit(machine.curBlock.parentFunction);
-                    }
-
-                    if (builder.irModule.functions.contains(((IRCallInst) curInst).callFunc())) {
+                    if (runningBuilder.irModule.functions.contains(((IRCallInst) curInst).callFunc())) {
                         if (profiler.isCompiled(((IRCallInst) curInst).callFunc())) {
                             invokeRavel = true;
                         } else {
@@ -94,17 +87,15 @@ public class Interpreter implements InstVisitor {
                         }
                     }
                 }
-
-                // modify global variables
-                if (curInst instanceof IRStoreInst && ((IRStoreInst) curInst).storePtr() instanceof GlobalVariable) {
-                    profiler.funcInvalidSubmit(machine.curBlock.parentFunction);
-                }
             }
 
             if (invokeRavel) {
-                int ravelRunningTime = machine.callRavel((IRCallInst) curInst, generator.codeStorage.get(
-                        (AsmFunction) ((IRCallInst) curInst).callFunc().asmOperand
-                ));
+                IRFunction callFunc = ((IRCallInst) curInst).callFunc();
+                int ravelRunningTime = machine.callRavel(
+                        (IRCallInst) curInst,
+                        generator.getGeneratedCode(callFunc),
+                        generator.getCompiledFunc(callFunc)
+                );
                 Statistics.plus("ravel", ravelRunningTime);
                 machine.regWrite(curInst, machine.regs[10]); // a0
                 machine.cursor++;
@@ -113,21 +104,21 @@ public class Interpreter implements InstVisitor {
                 curInst.accept(this);
             }
 
-            if (scheduler != null) {
-                scheduler.update();
-                if (scheduler.signal()) {
-                    assert profiler != null;
-                    IRFunction hottest = profiler.hotSelect();
-                    if (hottest != null) {
-                        AsmFunction compiledFunc = compiler.compile(hottest);
-                        profiler.funcCompiledSubmit(hottest);
-                        generator.runOnFunc(compiledFunc);
-                        scheduler.reset();
-                    }
+            if (scheduler != null && scheduler.signal()) {
+                assert profiler != null;
+                IRFunction hottest = profiler.hotSelect();
+                if (hottest != null) {
+                    AsmFunction compiledFunc = compiler.compile(hottest.name);
+                    profiler.funcCompiledSubmit(hottest);
+                    generator.runOnFunc(compiledFunc);
+                    generator.setRCMap(hottest, compiledFunc);
+                    scheduler.acknowledged();
+                    Log.info("hot function compiled:", compiledFunc.identifier);
+                    // Log.info(generator.getGeneratedCode(hottest));
                 }
             }
         }
-        Displayer.interpretFinish(machine.regRead(exitCode));
+        Displayer.interpretFinish(machine.regRead(exitCode) & 0xffff); // 0xffff
 
         /*
         for (var entry : generator.codeStorage.entrySet()) {
@@ -205,7 +196,7 @@ public class Interpreter implements InstVisitor {
 
     @Override
     public void visit(IRCallInst inst) {
-        if (builder.irModule.builtinFunctions.contains(inst.callFunc())) {
+        if (runningBuilder.irModule.builtinFunctions.contains(inst.callFunc())) {
             Integer ret = null;
             ArrayList<Integer> args = new ArrayList<>();
 

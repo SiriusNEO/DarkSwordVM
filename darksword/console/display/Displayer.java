@@ -8,7 +8,7 @@ public class Displayer {
 
     private static final String hint = "<darksword interpreter>: ";
 
-    private static final int InterpretColor = 47, FinishColor = 41;
+    private static final int InterpretColor = 35, FinishColor = 41;
 
     private static void colorPrintln(int color, String content){
         ps.format("\033[%dm%s\033[0m\n", color, content);

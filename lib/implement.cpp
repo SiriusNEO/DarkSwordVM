@@ -29,8 +29,17 @@ JNIEXPORT jint JNICALL Java_darksword_ravel_RavelControl_simulate
     
     uint32_t* regs_cpp = (uint32_t *) env->GetIntArrayElements(regs, NULL);
     std::byte* mem_cpp = (std::byte*) env->GetByteArrayElements(mem, NULL);
+
+    if (display) {
+        printf("[ravel] Initial Reg:");
+        for (int i = 0; i < 32; ++i) {
+            printf(" x%d=%d", i, regs_cpp[i]);
+        }
+        printf("\n");
+    }
+
     jint ret = ravel::simulate(src, regs_cpp, mem_cpp, mem_cpp + memSize);
-    jint a0 = regs_cpp[10];
+    jint a0 = 0xffffu & regs_cpp[10];
 
     env->ReleaseStringUTFChars(code, code_cpp);
     env->ReleaseIntArrayElements(regs, (jint*) regs_cpp, JNI_COMMIT);
@@ -40,6 +49,14 @@ JNIEXPORT jint JNICALL Java_darksword_ravel_RavelControl_simulate
     
     if (display) {
         printf("[ravel] Finish. Time= %d (cycle), ExitCode= %d\n", ret, a0);
+    }
+
+    if (display) {
+        printf("[ravel] Finish Reg: ");
+        for (int i = 0; i < 32; ++i) {
+            printf(" x%d=%d", i, regs_cpp[i]);
+        }
+        printf("\n");
     }
     
     return ret;
