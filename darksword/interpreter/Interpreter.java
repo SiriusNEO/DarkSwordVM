@@ -91,11 +91,19 @@ public class Interpreter implements InstVisitor {
 
             if (invokeRavel) {
                 IRFunction callFunc = ((IRCallInst) curInst).callFunc();
+                var dependencies = profiler.dependencyAnalysis(callFunc);
+
+                boolean linkLib = false;
+                for (var dependency : dependencies) {
+                    linkLib = profiler.hasLibcCall.contains(dependency);
+                    if (linkLib) break;
+                }
+
                 int ravelRunningTime = machine.callRavel(
                         (IRCallInst) curInst,
-                        generator.getGeneratedCode(callFunc),
+                        generator.getGeneratedCode(callFunc, dependencies),
                         generator.getCompiledFunc(callFunc),
-                        profiler.hasLibcCall.contains(callFunc)
+                        linkLib
                 );
                 Statistics.plus("ravel", ravelRunningTime);
                 machine.regWrite(curInst, machine.regs[10]); // a0
@@ -115,7 +123,7 @@ public class Interpreter implements InstVisitor {
                     generator.setRCMap(hottest, compiledFunc);
                     scheduler.acknowledged();
                     Log.info("hot function compiled:", compiledFunc.identifier);
-                    Log.info(generator.getGeneratedCode(hottest));
+                    Log.info(generator.getGeneratedCode(hottest, profiler.dependencyAnalysis(hottest)));
                 }
             }
         }

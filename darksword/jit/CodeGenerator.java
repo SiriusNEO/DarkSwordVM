@@ -5,6 +5,7 @@ import darksword.interpreter.error.InternalError;
 import masterball.compiler.backend.rvasm.AsmFormatter;
 import masterball.compiler.backend.rvasm.hierarchy.AsmBlock;
 import masterball.compiler.backend.rvasm.hierarchy.AsmFunction;
+import masterball.compiler.backend.rvasm.inst.AsmCallInst;
 import masterball.compiler.backend.rvasm.operand.GlobalReg;
 import masterball.compiler.middleend.llvmir.constant.GlobalValue;
 import masterball.compiler.middleend.llvmir.constant.GlobalVariable;
@@ -13,23 +14,27 @@ import masterball.compiler.middleend.llvmir.hierarchy.IRFunction;
 import masterball.compiler.middleend.llvmir.hierarchy.IRModule;
 import masterball.compiler.share.pass.AsmBlockPass;
 import masterball.compiler.share.pass.AsmFuncPass;
+import masterball.debug.Log;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Objects;
 
 public class CodeGenerator implements AsmFuncPass, AsmBlockPass {
 
     private final static String TAB = "\t";
-    public final static String WORD_LINE = TAB + ".word" + TAB;
+    private final static String NAME_REPLACE = "__internal__replace__";
+    private final static String WORD_LINE = TAB + ".word" + TAB;
 
     private final Machine runningMachine;
-    private String funcHeadText, funcTailText;
     private String code;
 
     private final HashMap<GlobalValue, String> globalInfo;
 
     private final HashMap<IRFunction, AsmFunction> runningIR2CompiledAsm;
     private final HashMap<AsmFunction, String> codeStorage;
+
+    private AsmFunction curAsmFunc;
 
     public CodeGenerator(IRModule module, Machine runningMachine) {
         this.runningMachine = runningMachine; // runtime info
@@ -56,27 +61,38 @@ public class CodeGenerator implements AsmFuncPass, AsmBlockPass {
             for (var line : strFormat) buf.append(line).append("\n");
             globalInfo.put(stringConst, buf.toString());
         });
-
-        AsmFunction pseudoMain = new AsmFunction("main");
-
-        funcHeadText = TAB + ".text\n";
-        AsmFormatter.functionHeaderFormat(pseudoMain).forEach(line -> funcHeadText += line + "\n");
-        funcHeadText += pseudoMain + ":" + "\n";
-        funcTailText = TAB + ".size" + TAB + pseudoMain + ", .-" + pseudoMain + "\n";
     }
 
     public AsmFunction getCompiledFunc(IRFunction function) {
         return this.runningIR2CompiledAsm.get(function);
     }
 
-    public String getGeneratedCode(IRFunction function) {
+    public String getGeneratedCode(IRFunction function, HashSet<IRFunction> dependencies) {
         AsmFunction compiledAsmFunc = this.runningIR2CompiledAsm.get(function);
 
         if (!codeStorage.containsKey(compiledAsmFunc)) {
             throw new InternalError("codegen error: function not compiled");
         }
 
-        StringBuilder base = new StringBuilder(funcHeadText + codeStorage.get(compiledAsmFunc) + funcTailText);
+        StringBuilder base = new StringBuilder();
+
+        // link all
+        for (IRFunction dependency : dependencies) {
+            AsmFunction compiledDependency = this.runningIR2CompiledAsm.get(dependency);
+            if (!codeStorage.containsKey(compiledDependency)) {
+                throw new InternalError("dependency error!");
+            }
+            String dependencyCode = codeStorage.get(compiledDependency);
+            if (dependency == function) {
+                // set to main
+                base.append(dependencyCode.replaceAll(NAME_REPLACE, "main"));
+            }
+            else {
+                base.append(dependencyCode.replaceAll(NAME_REPLACE, compiledDependency.identifier));
+            }
+            base.append("\n");
+        }
+
         for (var entry : globalInfo.entrySet()) {
             if (entry.getKey() instanceof StringConst) base.append(entry.getValue());
             else {
@@ -97,15 +113,29 @@ public class CodeGenerator implements AsmFuncPass, AsmBlockPass {
     @Override
     public void runOnFunc(AsmFunction compiledAsmFunc) {
         assert !codeStorage.containsKey(compiledAsmFunc);
+
+        AsmFunction pseudoFunc = new AsmFunction(NAME_REPLACE);
+
         code = "";
+        code += TAB + ".text\n";
+        AsmFormatter.functionHeaderFormat(pseudoFunc).forEach(line -> code += line + "\n");
+        code += pseudoFunc + ":" + "\n";
+
+        curAsmFunc = compiledAsmFunc;
         compiledAsmFunc.blocks.forEach(this::runOnBlock);
-        code = code.replaceAll(compiledAsmFunc.identifier, "main");
+
+        code += TAB + ".size" + TAB + pseudoFunc + ", .-" + pseudoFunc + "\n";
         codeStorage.put(compiledAsmFunc, code);
     }
 
     @Override
     public void runOnBlock(AsmBlock block) {
         code += block.identifier + ":" + "\n";
-        block.instructions.forEach(inst -> code += AsmFormatter.instFormat(inst) + "\n");
+        block.instructions.forEach(inst -> {
+            String instStr = AsmFormatter.instFormat(inst) + "\n";
+            if (inst instanceof AsmCallInst && ((AsmCallInst) inst).callFunc == curAsmFunc)
+                instStr = instStr.replaceAll(curAsmFunc.identifier, NAME_REPLACE);
+            code += instStr;
+        });
     }
 }
