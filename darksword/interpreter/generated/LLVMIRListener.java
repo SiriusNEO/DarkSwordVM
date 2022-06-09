@@ -1,4 +1,7 @@
 // Generated from ../src/darksword/interpreter/generated/LLVMIR.g4 by ANTLR 4.7.2
+
+    package darksword.interpreter.generated;
+
 import org.antlr.v4.runtime.tree.ParseTreeListener;
 
 /**
@@ -7,15 +10,15 @@ import org.antlr.v4.runtime.tree.ParseTreeListener;
  */
 public interface LLVMIRListener extends ParseTreeListener {
 	/**
-	 * Enter a parse tree produced by {@link LLVMIRParser#llvmIR}.
+	 * Enter a parse tree produced by {@link LLVMIRParser#rootLLVMIR}.
 	 * @param ctx the parse tree
 	 */
-	void enterLlvmIR(LLVMIRParser.LlvmIRContext ctx);
+	void enterRootLLVMIR(LLVMIRParser.RootLLVMIRContext ctx);
 	/**
-	 * Exit a parse tree produced by {@link LLVMIRParser#llvmIR}.
+	 * Exit a parse tree produced by {@link LLVMIRParser#rootLLVMIR}.
 	 * @param ctx the parse tree
 	 */
-	void exitLlvmIR(LLVMIRParser.LlvmIRContext ctx);
+	void exitRootLLVMIR(LLVMIRParser.RootLLVMIRContext ctx);
 	/**
 	 * Enter a parse tree produced by {@link LLVMIRParser#targetInfo}.
 	 * @param ctx the parse tree
@@ -57,15 +60,55 @@ public interface LLVMIRListener extends ParseTreeListener {
 	 */
 	void exitTargetTriple(LLVMIRParser.TargetTripleContext ctx);
 	/**
-	 * Enter a parse tree produced by {@link LLVMIRParser#funcHeader}.
+	 * Enter a parse tree produced by {@link LLVMIRParser#initExp}.
 	 * @param ctx the parse tree
 	 */
-	void enterFuncHeader(LLVMIRParser.FuncHeaderContext ctx);
+	void enterInitExp(LLVMIRParser.InitExpContext ctx);
 	/**
-	 * Exit a parse tree produced by {@link LLVMIRParser#funcHeader}.
+	 * Exit a parse tree produced by {@link LLVMIRParser#initExp}.
 	 * @param ctx the parse tree
 	 */
-	void exitFuncHeader(LLVMIRParser.FuncHeaderContext ctx);
+	void exitInitExp(LLVMIRParser.InitExpContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link LLVMIRParser#globalDecl}.
+	 * @param ctx the parse tree
+	 */
+	void enterGlobalDecl(LLVMIRParser.GlobalDeclContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link LLVMIRParser#globalDecl}.
+	 * @param ctx the parse tree
+	 */
+	void exitGlobalDecl(LLVMIRParser.GlobalDeclContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link LLVMIRParser#classDecl}.
+	 * @param ctx the parse tree
+	 */
+	void enterClassDecl(LLVMIRParser.ClassDeclContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link LLVMIRParser#classDecl}.
+	 * @param ctx the parse tree
+	 */
+	void exitClassDecl(LLVMIRParser.ClassDeclContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link LLVMIRParser#funcCall}.
+	 * @param ctx the parse tree
+	 */
+	void enterFuncCall(LLVMIRParser.FuncCallContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link LLVMIRParser#funcCall}.
+	 * @param ctx the parse tree
+	 */
+	void exitFuncCall(LLVMIRParser.FuncCallContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link LLVMIRParser#funcInfo}.
+	 * @param ctx the parse tree
+	 */
+	void enterFuncInfo(LLVMIRParser.FuncInfoContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link LLVMIRParser#funcInfo}.
+	 * @param ctx the parse tree
+	 */
+	void exitFuncInfo(LLVMIRParser.FuncInfoContext ctx);
 	/**
 	 * Enter a parse tree produced by {@link LLVMIRParser#funcDecl}.
 	 * @param ctx the parse tree
@@ -107,6 +150,16 @@ public interface LLVMIRListener extends ParseTreeListener {
 	 */
 	void exitInstDest(LLVMIRParser.InstDestContext ctx);
 	/**
+	 * Enter a parse tree produced by {@link LLVMIRParser#gepOffset}.
+	 * @param ctx the parse tree
+	 */
+	void enterGepOffset(LLVMIRParser.GepOffsetContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link LLVMIRParser#gepOffset}.
+	 * @param ctx the parse tree
+	 */
+	void exitGepOffset(LLVMIRParser.GepOffsetContext ctx);
+	/**
 	 * Enter a parse tree produced by {@link LLVMIRParser#phiBranch}.
 	 * @param ctx the parse tree
 	 */
@@ -116,6 +169,26 @@ public interface LLVMIRListener extends ParseTreeListener {
 	 * @param ctx the parse tree
 	 */
 	void exitPhiBranch(LLVMIRParser.PhiBranchContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link LLVMIRParser#cmpOp}.
+	 * @param ctx the parse tree
+	 */
+	void enterCmpOp(LLVMIRParser.CmpOpContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link LLVMIRParser#cmpOp}.
+	 * @param ctx the parse tree
+	 */
+	void exitCmpOp(LLVMIRParser.CmpOpContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link LLVMIRParser#binaryOp}.
+	 * @param ctx the parse tree
+	 */
+	void enterBinaryOp(LLVMIRParser.BinaryOpContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link LLVMIRParser#binaryOp}.
+	 * @param ctx the parse tree
+	 */
+	void exitBinaryOp(LLVMIRParser.BinaryOpContext ctx);
 	/**
 	 * Enter a parse tree produced by the {@code alloca}
 	 * labeled alternative in {@link LLVMIRParser#instruction}.
@@ -283,15 +356,15 @@ public interface LLVMIRListener extends ParseTreeListener {
 	 */
 	void exitAtom(LLVMIRParser.AtomContext ctx);
 	/**
-	 * Enter a parse tree produced by {@link LLVMIRParser#align}.
+	 * Enter a parse tree produced by {@link LLVMIRParser#alignment}.
 	 * @param ctx the parse tree
 	 */
-	void enterAlign(LLVMIRParser.AlignContext ctx);
+	void enterAlignment(LLVMIRParser.AlignmentContext ctx);
 	/**
-	 * Exit a parse tree produced by {@link LLVMIRParser#align}.
+	 * Exit a parse tree produced by {@link LLVMIRParser#alignment}.
 	 * @param ctx the parse tree
 	 */
-	void exitAlign(LLVMIRParser.AlignContext ctx);
+	void exitAlignment(LLVMIRParser.AlignmentContext ctx);
 	/**
 	 * Enter a parse tree produced by {@link LLVMIRParser#type}.
 	 * @param ctx the parse tree
@@ -332,14 +405,4 @@ public interface LLVMIRListener extends ParseTreeListener {
 	 * @param ctx the parse tree
 	 */
 	void exitIntegerConstant(LLVMIRParser.IntegerConstantContext ctx);
-	/**
-	 * Enter a parse tree produced by {@link LLVMIRParser#stringConstant}.
-	 * @param ctx the parse tree
-	 */
-	void enterStringConstant(LLVMIRParser.StringConstantContext ctx);
-	/**
-	 * Exit a parse tree produced by {@link LLVMIRParser#stringConstant}.
-	 * @param ctx the parse tree
-	 */
-	void exitStringConstant(LLVMIRParser.StringConstantContext ctx);
 }

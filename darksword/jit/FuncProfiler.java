@@ -7,9 +7,11 @@ import masterball.compiler.middleend.llvmir.hierarchy.IRModule;
 import masterball.compiler.middleend.llvmir.inst.IRBaseInst;
 import masterball.compiler.middleend.llvmir.inst.IRCallInst;
 import masterball.compiler.middleend.llvmir.inst.IRStoreInst;
+import masterball.compiler.share.lang.LLVM;
 import masterball.compiler.share.lang.MxStar;
 
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.Objects;
 
 public class FuncProfiler {
@@ -21,8 +23,11 @@ public class FuncProfiler {
     // set to -2 if function has side effect (call others)
     private final LinkedHashMap<IRFunction, Integer> funcHot;
 
+    public final LinkedHashSet<IRFunction> hasLibcCall;
+
     public FuncProfiler(IRModule irModule) {
         funcHot = new LinkedHashMap<>();
+        hasLibcCall = new LinkedHashSet<>();
         for (IRFunction function : irModule.functions) {
             if (function.name.equals("main")) funcHot.put(function, INVALID); // do not JIT main
             else funcHot.put(function, 0);
@@ -53,7 +58,11 @@ public class FuncProfiler {
                 if (inst instanceof IRCallInst) {
                     // libc and other user-defined func call not support
                     if (((IRCallInst) inst).callFunc() != function) {
-                        return false;
+                        if (function.parentModule.builtinFunctions.contains(((IRCallInst) inst).callFunc()) &&
+                            function != function.parentModule.getMalloc() )
+                            hasLibcCall.add(function);
+                        else
+                            return false;
                     }
                 }
 

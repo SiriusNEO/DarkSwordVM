@@ -5,6 +5,7 @@ import darksword.interpreter.error.NoMainFunc;
 import darksword.interpreter.error.OutOfMemoryError;
 import darksword.interpreter.error.StackOverflowError;
 
+import darksword.jit.LibReader;
 import darksword.ravel.RavelControl;
 import masterball.compiler.backend.rvasm.hierarchy.AsmFunction;
 import masterball.compiler.backend.rvasm.operand.PhysicalReg;
@@ -19,6 +20,8 @@ import masterball.compiler.share.lang.RV32I;
 import masterball.debug.Log;
 import masterball.debug.Statistics;
 
+import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintStream;
 import java.util.*;
@@ -53,6 +56,9 @@ public class Machine {
     public PrintStream stdout;
     public Scanner scanner;
 
+    // builtin
+    private LibReader libReader;
+
     // mem
     private final LinkedHashMap<Value, Integer> glbRegScope;
     private final byte[] memory;
@@ -69,10 +75,12 @@ public class Machine {
 
     private int heapCur, stackCur;
 
-    public Machine(IRModule module) {
+    public Machine(IRModule module) throws IOException {
         stdin = (InputStream) Config.getArgValue(Config.Option.Stdin);
         stdout = (PrintStream) Config.getArgValue(Config.Option.Stdout);
         scanner = new Scanner(stdin);
+
+        libReader = new LibReader();
 
         cursor = 0;
         heapCur = __ravelTextSpace;
@@ -124,10 +132,10 @@ public class Machine {
     public void testRavel() {
         Statistics.plus("test_ravel");
         Statistics.show("test_ravel");
-        RavelControl.simulate(".text\n.globl main\nmain:\nnop\nret", this.regs, this.memory, __machineMem, false);
+        RavelControl.simulate(".text\n.globl main\nmain:\nnop\nret", libReader.getLib(), this.regs, this.memory, __machineMem, false);
     }
 
-    public int callRavel(IRCallInst call, String code, AsmFunction compiledFunc) {
+    public int callRavel(IRCallInst call, String code, AsmFunction compiledFunc, boolean link) {
 
         for (int i = 0; i < this.regNum; ++i) this.regs[i] = 0;
         this.regs[2] = __machineMem - compiledFunc.totalStackUse; // stack pointer.
@@ -149,8 +157,11 @@ public class Machine {
                              call.getArg(i).type.size());
         }
 
+        String linkCode = link ? libReader.getLib() : "";
+
         return RavelControl.simulate(
                                 code,
+                                linkCode,
                                 this.regs,
                                 this.memory,
                                 __machineMem,

@@ -1,5 +1,8 @@
 // Generated from ../src/darksword/interpreter/generated/LLVMIR.g4 by ANTLR 4.7.2
 
+    package darksword.interpreter.generated;
+
+
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.tree.ErrorNode;
 import org.antlr.v4.runtime.tree.TerminalNode;
@@ -15,13 +18,13 @@ public class LLVMIRBaseListener implements LLVMIRListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
-	@Override public void enterLlvmIR(LLVMIRParser.LlvmIRContext ctx) { }
+	@Override public void enterRootLLVMIR(LLVMIRParser.RootLLVMIRContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
-	@Override public void exitLlvmIR(LLVMIRParser.LlvmIRContext ctx) { }
+	@Override public void exitRootLLVMIR(LLVMIRParser.RootLLVMIRContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *
@@ -75,13 +78,61 @@ public class LLVMIRBaseListener implements LLVMIRListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
-	@Override public void enterFuncHeader(LLVMIRParser.FuncHeaderContext ctx) { }
+	@Override public void enterInitExp(LLVMIRParser.InitExpContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
-	@Override public void exitFuncHeader(LLVMIRParser.FuncHeaderContext ctx) { }
+	@Override public void exitInitExp(LLVMIRParser.InitExpContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterGlobalDecl(LLVMIRParser.GlobalDeclContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitGlobalDecl(LLVMIRParser.GlobalDeclContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterClassDecl(LLVMIRParser.ClassDeclContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitClassDecl(LLVMIRParser.ClassDeclContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterFuncCall(LLVMIRParser.FuncCallContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitFuncCall(LLVMIRParser.FuncCallContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterFuncInfo(LLVMIRParser.FuncInfoContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitFuncInfo(LLVMIRParser.FuncInfoContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *
@@ -135,6 +186,18 @@ public class LLVMIRBaseListener implements LLVMIRListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
+	@Override public void enterGepOffset(LLVMIRParser.GepOffsetContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitGepOffset(LLVMIRParser.GepOffsetContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
 	@Override public void enterPhiBranch(LLVMIRParser.PhiBranchContext ctx) { }
 	/**
 	 * {@inheritDoc}
@@ -142,6 +205,30 @@ public class LLVMIRBaseListener implements LLVMIRListener {
 	 * <p>The default implementation does nothing.</p>
 	 */
 	@Override public void exitPhiBranch(LLVMIRParser.PhiBranchContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterCmpOp(LLVMIRParser.CmpOpContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitCmpOp(LLVMIRParser.CmpOpContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterBinaryOp(LLVMIRParser.BinaryOpContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitBinaryOp(LLVMIRParser.BinaryOpContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *
@@ -315,13 +402,13 @@ public class LLVMIRBaseListener implements LLVMIRListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
-	@Override public void enterAlign(LLVMIRParser.AlignContext ctx) { }
+	@Override public void enterAlignment(LLVMIRParser.AlignmentContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
-	@Override public void exitAlign(LLVMIRParser.AlignContext ctx) { }
+	@Override public void exitAlignment(LLVMIRParser.AlignmentContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *
@@ -370,18 +457,6 @@ public class LLVMIRBaseListener implements LLVMIRListener {
 	 * <p>The default implementation does nothing.</p>
 	 */
 	@Override public void exitIntegerConstant(LLVMIRParser.IntegerConstantContext ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
-	@Override public void enterStringConstant(LLVMIRParser.StringConstantContext ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
-	@Override public void exitStringConstant(LLVMIRParser.StringConstantContext ctx) { }
 
 	/**
 	 * {@inheritDoc}

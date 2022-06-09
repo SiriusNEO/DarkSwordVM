@@ -56,6 +56,10 @@ public class CmdDoc {
                     ret.append("The absolute path of the libravel-sim.so file\n");
                     break;
                 }
+                case Builtin: {
+                    ret.append("The path of the builtin.s\n");
+                    break;
+                }
                 case JIT: {
                     ret.append("Start JIT mode (otherwise only the interpreter is running)");
                     break;

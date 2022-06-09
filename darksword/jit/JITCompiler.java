@@ -7,6 +7,7 @@ import masterball.compiler.backend.regalloc.StackAllocator;
 import masterball.compiler.backend.rvasm.AsmBuilder;
 import masterball.compiler.backend.rvasm.hierarchy.AsmFunction;
 import masterball.compiler.middleend.analyzer.CFGBuilder;
+import masterball.compiler.middleend.llvmir.Value;
 import masterball.compiler.middleend.llvmir.constant.GlobalVariable;
 import masterball.compiler.middleend.llvmir.constant.StringConst;
 import masterball.compiler.middleend.llvmir.hierarchy.IRFunction;
@@ -46,6 +47,7 @@ public class JITCompiler {
 
         // IR Optimization
 
+        Value.rename = true;
         new Mem2Reg().runOnFunc(compiling);
         new CFGSimplifier().runOnFunc(compiling);
         new GVN().runOnFunc(compiling);

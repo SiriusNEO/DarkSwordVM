@@ -1,25 +1,36 @@
 package darksword;
 
-import darksword.interpreter.LLVMReader;
-import masterball.console.Config;
-import masterball.console.Console;
+import darksword.console.Config;
+import darksword.console.Console;
+import darksword.interpreter.Interpreter;
+import darksword.interpreter.Machine;
+import darksword.interpreter.error.VirtualMachineError;
+import darksword.ravel.RavelControl;
+import masterball.compiler.share.error.CompileError;
 import masterball.console.error.ConsoleError;
+import masterball.debug.Log;
+import masterball.debug.Statistics;
 import masterball.debug.Timer;
 
-import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.Arrays;
 
 public class DarkSwordVM {
 
     public static void main(String[] args) throws Exception {
         try {
-            Timer.start();
-
             Console console = new Console(args);
             if (console.showHelp || console.showVersion) return;
 
-            new LLVMReader((InputStream) Config.getArgValue(Config.Option.Input)).read();
+            Interpreter interpreter = new Interpreter(console);
 
+            // for (int i = 1; i <= 1000000; ++i)
+            //    RavelControl.connect("test" + i);
+
+            Timer.start();
+            interpreter.interpret();
             Timer.display();
+            Statistics.show("ravel");
         }
         catch (Exception e) {
             errorHandle(e);
@@ -28,7 +39,15 @@ public class DarkSwordVM {
     }
 
     private static void errorHandle(Exception e) {
-        if (e instanceof ConsoleError) {
+        if (e instanceof CompileError) {
+            ((CompileError) e).tell();
+            throw new RuntimeException();
+        }
+        else if (e instanceof VirtualMachineError) {
+            ((VirtualMachineError) e).tell();
+            throw new RuntimeException();
+        }
+        else if (e instanceof ConsoleError) {
             ((ConsoleError) e).tell();
             throw new RuntimeException();
         }
