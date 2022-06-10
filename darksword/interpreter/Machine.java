@@ -135,7 +135,7 @@ public class Machine {
         RavelControl.simulate(".text\n.globl main\nmain:\nnop\nret", libReader.getLib(), this.regs, this.memory, __machineMem, false);
     }
 
-    public int callRavel(IRCallInst call, String code, AsmFunction compiledFunc, boolean linkLib) {
+    public int callRavel(IRCallInst call, String code, AsmFunction compiledFunc, ArrayList<GlobalValue> dirtyGlobal, boolean linkLib) {
 
         for (int i = 0; i < this.regNum; ++i) this.regs[i] = 0;
         this.regs[2] = __machineMem - compiledFunc.totalStackUse; // stack pointer.
@@ -159,13 +159,16 @@ public class Machine {
 
         String linkCode = linkLib ? libReader.getLib() : "";
 
-        return RavelControl.simulate(
-                                code,
-                                linkCode,
-                                this.regs,
-                                this.memory,
-                                __machineMem,
-                         false);
+        int ret = RavelControl.simulate(code, linkCode, this.regs, this.memory, __machineMem, false);
+
+        for (int i = 1; i <= dirtyGlobal.size(); ++i) {
+            var dirty = dirtyGlobal.get(i-1);
+            int data = this.regs[10+i];
+            int addr = regRead(dirty);
+            storeBySize(addr, data, dirty.type.size());
+        }
+
+        return ret;
     }
 
     private int byteLoad(int addr) {

@@ -1,16 +1,13 @@
 package darksword.jit;
 
-import masterball.compiler.middleend.analyzer.CallGraphAnalyzer;
-import masterball.compiler.middleend.llvmir.constant.GlobalVariable;
+import darksword.interpreter.error.InternalError;
+import masterball.compiler.middleend.llvmir.constant.GlobalValue;
 import masterball.compiler.middleend.llvmir.hierarchy.IRBlock;
 import masterball.compiler.middleend.llvmir.hierarchy.IRFunction;
 import masterball.compiler.middleend.llvmir.hierarchy.IRModule;
 import masterball.compiler.middleend.llvmir.inst.IRBaseInst;
 import masterball.compiler.middleend.llvmir.inst.IRCallInst;
 import masterball.compiler.middleend.llvmir.inst.IRStoreInst;
-import masterball.compiler.share.error.codegen.InternalError;
-import masterball.compiler.share.lang.LLVM;
-import masterball.compiler.share.lang.MxStar;
 import masterball.debug.Log;
 
 import java.util.*;
@@ -19,12 +16,15 @@ public class FuncProfiler {
 
     private static final int COMPILED = -1, INVALID = -2;
 
+    private static final int DIRTY_GLOBAL_THRESHOLD = 7;
+
     // the called times of a function.
     // set to -1 if function is compiled.
     // set to -2 if function has side effect (call others)
     private final LinkedHashMap<IRFunction, Integer> funcHot;
 
     private final LinkedHashMap<IRFunction, HashSet<IRFunction>> dependencies;
+    private final LinkedHashMap<IRFunction, HashSet<GlobalValue>> dirtyGlobal;
 
     public final LinkedHashSet<IRFunction> hasLibcCall;
 
@@ -32,6 +32,7 @@ public class FuncProfiler {
         funcHot = new LinkedHashMap<>();
         hasLibcCall = new LinkedHashSet<>();
         dependencies = new LinkedHashMap<>();
+        dirtyGlobal = new LinkedHashMap<>();
 
         // don't use CallGraphAnalyzer because it will scan all inst
 
@@ -41,6 +42,7 @@ public class FuncProfiler {
             else
                 funcHot.put(function, 0);
             dependencies.put(function, new HashSet<>());
+            dirtyGlobal.put(function, new HashSet<>());
         }
     }
 
@@ -72,9 +74,7 @@ public class FuncProfiler {
     }
 
     private boolean checkValidity(IRFunction function) {
-        if (funcHot.get(function) == INVALID) {
-            return false;
-        }
+        if (funcHot.get(function) == INVALID) return false;
 
         for (IRBlock block : function.blocks)
             for (IRBaseInst inst : block.instructions) {
@@ -96,11 +96,17 @@ public class FuncProfiler {
                 }
 
                 // modify global variables
-                if (inst instanceof IRStoreInst && ((IRStoreInst) inst).storePtr() instanceof GlobalVariable) {
-                    funcInvalidate(function);
-                    return false;
+                if (inst instanceof IRStoreInst && ((IRStoreInst) inst).storePtr() instanceof GlobalValue) {
+                    dirtyGlobal.get(function).add((GlobalValue) ((IRStoreInst) inst).storePtr());
                 }
             }
+
+        var curDirtyGlobal = dirtyGlobalAnalysis(function);
+
+        if (curDirtyGlobal.size() > DIRTY_GLOBAL_THRESHOLD) {
+            funcInvalidate(function);
+            return false;
+        }
 
         return true;
     }
@@ -114,7 +120,7 @@ public class FuncProfiler {
 
         while (!workQueue.isEmpty()) {
             IRFunction curFunc = workQueue.poll();
-            if (funcHot.get(curFunc) != COMPILED) {
+            if (curFunc != function && funcHot.get(curFunc) != COMPILED) {
                 throw new InternalError("not compiled");
             }
 
@@ -129,6 +135,14 @@ public class FuncProfiler {
             ret.addAll(curDependencies);
         }
 
+        return ret;
+    }
+
+    public ArrayList<GlobalValue> dirtyGlobalAnalysis(IRFunction function) {
+        ArrayList<GlobalValue> ret = new ArrayList<>();
+        var dependencies = dependencyAnalysis(function);
+        for (var dependency : dependencies)
+            ret.addAll(dirtyGlobal.get(dependency));
         return ret;
     }
 

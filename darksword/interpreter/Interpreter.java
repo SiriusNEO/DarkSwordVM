@@ -92,6 +92,7 @@ public class Interpreter implements InstVisitor {
             if (invokeRavel) {
                 IRFunction callFunc = ((IRCallInst) curInst).callFunc();
                 var dependencies = profiler.dependencyAnalysis(callFunc);
+                var dirtyGlobal = profiler.dirtyGlobalAnalysis(callFunc);
 
                 boolean linkLib = false;
                 for (var dependency : dependencies) {
@@ -101,8 +102,9 @@ public class Interpreter implements InstVisitor {
 
                 int ravelRunningTime = machine.callRavel(
                         (IRCallInst) curInst,
-                        generator.getGeneratedCode(callFunc, dependencies),
+                        generator.getGeneratedCode(callFunc, dependencies, dirtyGlobal),
                         generator.getCompiledFunc(callFunc),
+                        dirtyGlobal,
                         linkLib
                 );
                 Statistics.plus("ravel", ravelRunningTime);
@@ -117,13 +119,13 @@ public class Interpreter implements InstVisitor {
                 assert profiler != null;
                 IRFunction hottest = profiler.hotSelect();
                 if (hottest != null) {
+                    Log.info("hot function compiling:", hottest.identifier());
                     AsmFunction compiledFunc = compiler.compile(hottest.name);
                     profiler.funcCompiledSubmit(hottest);
                     generator.runOnFunc(compiledFunc);
                     generator.setRCMap(hottest, compiledFunc);
                     scheduler.acknowledged();
-                    Log.info("hot function compiled:", compiledFunc.identifier);
-                    Log.info(generator.getGeneratedCode(hottest, profiler.dependencyAnalysis(hottest)));
+                    Log.info(generator.getGeneratedCode(hottest, profiler.dependencyAnalysis(hottest), profiler.dirtyGlobalAnalysis(hottest)));
                 }
             }
         }
