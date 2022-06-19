@@ -28,6 +28,8 @@ public class FuncProfiler {
 
     public final LinkedHashSet<IRFunction> hasLibcCall;
 
+    private final ArrayList<IRFunction> blackList;
+
     public FuncProfiler(IRModule irModule) {
         funcHot = new LinkedHashMap<>();
         hasLibcCall = new LinkedHashSet<>();
@@ -44,6 +46,12 @@ public class FuncProfiler {
             dependencies.put(function, new HashSet<>());
             dirtyGlobal.put(function, new HashSet<>());
         }
+
+        // some corner case
+        blackList = new ArrayList<>();
+        blackList.add(irModule.getMalloc());
+        // lackList.add(irModule.getBuiltinFunction("getString"));
+        // blackList.add(irModule.getBuiltinFunction("getInt"));
     }
 
     public void funcInterpretedSubmit(IRFunction function) {
@@ -80,9 +88,12 @@ public class FuncProfiler {
             for (IRBaseInst inst : block.instructions) {
                 if (inst instanceof IRCallInst) {
                     IRFunction callee = ((IRCallInst) inst).callFunc();
-                    if (callee == function.parentModule.getMalloc()) {
-                        funcInvalidate(function);
-                        return false;
+
+                    for (IRFunction blackCall : blackList) {
+                        if (callee == blackCall) {
+                            funcInvalidate(function);
+                            return false;
+                        }
                     }
 
                     if (function.parentModule.builtinFunctions.contains(callee))

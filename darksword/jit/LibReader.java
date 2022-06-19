@@ -25,7 +25,7 @@ public class LibReader {
 
     public String getLib() {
         if (builtnCode != null) return builtnCode;
-        throw new InternalError("No path for buitln.s. GetLib failed.");
+        throw new InternalError("No path for builtin.s. GetLib failed.");
     }
 
 }

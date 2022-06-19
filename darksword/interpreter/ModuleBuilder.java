@@ -65,7 +65,8 @@ public class ModuleBuilder extends LLVMIRBaseVisitor<Value> {
         irParser.removeErrorListeners();
         irParser.addErrorListener(new ParseErrorListener());
 
-        irModule.setBottomFunctions();
+        // irModule.setBottomFunctions();
+        // no need!
         visit(irParser.rootLLVMIR());
 
         // clear onlyName

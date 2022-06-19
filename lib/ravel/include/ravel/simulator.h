@@ -62,6 +62,7 @@ std::size_t simulate(const std::string &src,
                      const std::string &lib,
                      std::uint32_t *regs,
                      std::byte *storageBegin, 
-                     std::byte *storageEnd);
+                     std::byte *storageEnd,
+                     const std::string &stdout_path);
 
 }

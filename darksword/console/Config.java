@@ -20,7 +20,7 @@ public class Config {
         }
     }
 
-    public enum Option {Version, Help, Input, LogOutput, OJMode, Stdin, Stdout, LibRavel, Builtin, JIT};
+    public enum Option {Version, Help, Input, LogOutput, OJMode, Stdin, Stdout, LibRavel, Builtin, JIT, EmitDir};
 
     public static Map<Option, Setting> argSetting = new LinkedHashMap<>();
 
@@ -42,6 +42,7 @@ public class Config {
 
         argSetting.put(Option.JIT, new Setting("-jit", false, false));
 
+        argSetting.put(Option.EmitDir, new Setting("-jit-emit", true, "jit"));
     }
 
     public static String getPath(Option option) {

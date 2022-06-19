@@ -34,4 +34,5 @@ Drag the directory `darksword` into the `src` directory in [Masterball](https://
 - [x] Ravel will set `sp` to the end of the storage. (Fixed)
 - [x] Ravel (x86) mem uses small-endian but DarkSword uses big-endian. (Fixed)
 - [x] Ravel can not link `builtin.s` therefore I can not JIT codes with libc call. (Fixed, but...)
-- [x] Ravel can not pass Global Value (Fixed)
+- [x] Ravel can not pass Global Value (Fixed, but...)
+- [x] Ravel use `fopen('w')` and the file `test.out` will be cleared every time `simulate` is called. (Fixed)

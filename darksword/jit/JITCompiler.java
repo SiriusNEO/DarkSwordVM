@@ -1,5 +1,6 @@
 package darksword.jit;
 
+import darksword.console.Config;
 import darksword.interpreter.ModuleBuilder;
 import masterball.compiler.backend.optim.*;
 import masterball.compiler.backend.regalloc.RegisterAllocator;
@@ -17,6 +18,7 @@ import masterball.compiler.middleend.optim.ssa.Mem2Reg;
 import masterball.compiler.middleend.optim.ssa.SSADestructor;
 import masterball.debug.Log;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Objects;
@@ -36,7 +38,6 @@ public class JITCompiler {
             new CFGBuilder().runOnFunc(function);
             name2Func.put(function.name, function);
         }
-
     }
 
     public AsmFunction compile(String funcName) {

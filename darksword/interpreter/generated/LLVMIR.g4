@@ -18,7 +18,7 @@ initExp: (atom | 'zeroinitializer');
 globalDecl: GlobalReg '=' LinkageType? PreemptionSpecifiers? VisibilityStyles? UnnamedAddr? GlobalWord type initExp alignment?;
 
 // class
-classDecl: LocalReg '=' 'type' '{' type (',' type)* '}';
+classDecl: LocalReg '=' 'type' '{' (type (',' type)*)? '}';
 
 // function
 funcCall:  ParaAttr? type GlobalReg '(' (type atom? (',' type atom?)*)? ')';

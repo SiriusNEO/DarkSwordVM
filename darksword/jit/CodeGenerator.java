@@ -1,5 +1,6 @@
 package darksword.jit;
 
+import darksword.console.Config;
 import darksword.interpreter.Machine;
 import darksword.interpreter.error.InternalError;
 import masterball.compiler.backend.rvasm.AsmFormatter;
@@ -21,6 +22,9 @@ import masterball.compiler.share.pass.AsmBlockPass;
 import masterball.compiler.share.pass.AsmFuncPass;
 import masterball.debug.Log;
 
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -69,6 +73,8 @@ public class CodeGenerator implements AsmFuncPass, AsmBlockPass {
             for (var line : strFormat) buf.append(line).append("\n");
             globalInfo.put(stringConst, buf.toString());
         });
+
+        new File((String) Config.getArgValue(Config.Option.EmitDir)).mkdir();
     }
 
     public AsmFunction getCompiledFunc(IRFunction function) {
@@ -148,6 +154,12 @@ public class CodeGenerator implements AsmFuncPass, AsmBlockPass {
 
         code += TAB + ".size" + TAB + pseudoFunc + ", .-" + pseudoFunc + "\n";
         codeStorage.put(compiledAsmFunc, code);
+
+        try {
+            new PrintStream(Config.getArgValue(Config.Option.EmitDir) + "/" + compiledAsmFunc + ".s").print(code);
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        }
     }
 
     @Override

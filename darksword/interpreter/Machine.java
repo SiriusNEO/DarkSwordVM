@@ -24,9 +24,13 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.*;
 
 public class Machine {
+
+    private static final String RAVEL_OUTPUT_BUFFER_SUFFIX = ".rbuffer";
 
     // handle dfs
     public static class StackLayer {
@@ -132,7 +136,8 @@ public class Machine {
     public void testRavel() {
         Statistics.plus("test_ravel");
         Statistics.show("test_ravel");
-        RavelControl.simulate(".text\n.globl main\nmain:\nnop\nret", libReader.getLib(), this.regs, this.memory, __machineMem, false);
+        RavelControl.simulate(".text\n.globl main\nmain:\nnop\nret", libReader.getLib(), this.regs, this.memory, __machineMem,
+                                Config.getPath(Config.Option.Stdout), false);
     }
 
     public int callRavel(IRCallInst call, String code, AsmFunction compiledFunc, ArrayList<GlobalValue> dirtyGlobal, boolean linkLib) {
@@ -158,8 +163,14 @@ public class Machine {
         }
 
         String linkCode = linkLib ? libReader.getLib() : "";
+        String rBufferCache = "";
 
-        int ret = RavelControl.simulate(code, linkCode, this.regs, this.memory, __machineMem, false);
+        if (Config.getArgValue(Config.Option.Stdout) != System.out) {
+            rBufferCache = Config.getPath(Config.Option.Stdout) + RAVEL_OUTPUT_BUFFER_SUFFIX;
+        }
+
+        int ret = RavelControl.simulate(code, linkCode, this.regs, this.memory, __machineMem,
+                                        rBufferCache, false);
 
         for (int i = 1; i <= dirtyGlobal.size(); ++i) {
             var dirty = dirtyGlobal.get(i-1);
@@ -168,22 +179,32 @@ public class Machine {
             storeBySize(addr, data, dirty.type.size());
         }
 
+        try {
+            stdout.print(Files.readString(Path.of(rBufferCache)));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
         return ret;
     }
 
     private int byteLoad(int addr) {
+        /*
         if (addr < __ravelTextSpace) {
             throw new OutOfMemoryError("load in " + addr);
         }
+        */
         int ret = memory[addr];
         // Log.info("load [" + ret + "] from [" + addr + "]");
         return ret & 0xff;
     }
 
     private void byteStore(int addr, byte data) {
+        /*
         if (addr < __ravelTextSpace) {
             throw new OutOfMemoryError("store in " + addr);
         }
+        */
         memory[addr] = data;
         // Log.info("store [" + data + "] to [" + addr + "]");
     }

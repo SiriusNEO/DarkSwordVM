@@ -24,6 +24,7 @@ import masterball.debug.Statistics;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Objects;
 
 public class Interpreter implements InstVisitor {
 
@@ -100,6 +101,8 @@ public class Interpreter implements InstVisitor {
                     if (linkLib) break;
                 }
 
+                // Log.info("ravel call:", callFunc.identifier());
+
                 int ravelRunningTime = machine.callRavel(
                         (IRCallInst) curInst,
                         generator.getGeneratedCode(callFunc, dependencies, dirtyGlobal),
@@ -125,7 +128,7 @@ public class Interpreter implements InstVisitor {
                     generator.runOnFunc(compiledFunc);
                     generator.setRCMap(hottest, compiledFunc);
                     scheduler.acknowledged();
-                    Log.info(generator.getGeneratedCode(hottest, profiler.dependencyAnalysis(hottest), profiler.dirtyGlobalAnalysis(hottest)));
+                    // Log.info(generator.getGeneratedCode(hottest, profiler.dependencyAnalysis(hottest), profiler.dirtyGlobalAnalysis(hottest)));
                 }
             }
         }

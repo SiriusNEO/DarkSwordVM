@@ -13,7 +13,7 @@ public class RavelControl {
 
     public native static int connect(String testWord);
 
-    public native static int simulate(String src, String lib, int[] externRegs, byte[] externMem, int memSize, boolean display);
+    public native static int simulate(String src, String lib, int[] externRegs, byte[] externMem, int memSize, String stdout, boolean display);
 
     /*
     public static int test(String code, int[] externRegs, byte[] externMem) {

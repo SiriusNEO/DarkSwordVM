@@ -18,7 +18,7 @@ JNIEXPORT jint JNICALL Java_darksword_ravel_RavelControl_connect
   }
 
 JNIEXPORT jint JNICALL Java_darksword_ravel_RavelControl_simulate
-(JNIEnv *env, jclass instance, jstring src, jstring lib, jintArray regs, jbyteArray mem, jint memSize, jboolean display) {
+(JNIEnv *env, jclass instance, jstring src, jstring lib, jintArray regs, jbyteArray mem, jint memSize, jstring stdout_path, jboolean display) {
     if (display) {
         printf("[ravel] Execute call from DarkSword...\n");
         printf("[ravel] RegNum= %d, MemSize= %d (bytes)\n", 32, memSize);
@@ -26,7 +26,8 @@ JNIEXPORT jint JNICALL Java_darksword_ravel_RavelControl_simulate
     
     char* src_cpp = (char *) env->GetStringUTFChars(src, NULL);
     char* lib_cpp = (char *) env->GetStringUTFChars(lib, NULL);
-    std::string src_str(src_cpp), lib_str(lib_cpp);
+    char* stdout_cpp = (char *) env->GetStringUTFChars(stdout_path, NULL);
+    std::string src_str(src_cpp), lib_str(lib_cpp), stdout_str(stdout_cpp);
     
     uint32_t* regs_cpp = (uint32_t *) env->GetIntArrayElements(regs, NULL);
     std::byte* mem_cpp = (std::byte*) env->GetByteArrayElements(mem, NULL);
@@ -39,11 +40,12 @@ JNIEXPORT jint JNICALL Java_darksword_ravel_RavelControl_simulate
         printf("\n");
     }
 
-    jint ret = ravel::simulate(src_str, lib_str, regs_cpp, mem_cpp, mem_cpp + memSize);
+    jint ret = ravel::simulate(src_str, lib_str, regs_cpp, mem_cpp, mem_cpp + memSize, stdout_str);
     jint a0 = 0xffffu & regs_cpp[10];
 
     env->ReleaseStringUTFChars(src, src_cpp);
     env->ReleaseStringUTFChars(lib, lib_cpp);
+    env->ReleaseStringUTFChars(stdout_path, stdout_cpp);
     env->ReleaseIntArrayElements(regs, (jint*) regs_cpp, JNI_COMMIT);
     env->ReleaseByteArrayElements(mem, (jbyte*) mem_cpp, JNI_COMMIT);
     env->ReleaseIntArrayElements(regs, (jint*) regs_cpp, 0);
