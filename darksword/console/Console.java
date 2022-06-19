@@ -7,6 +7,7 @@ import masterball.debug.Log;
 import java.io.FileInputStream;
 import java.io.PrintStream;
 import java.util.Objects;
+import java.util.regex.Pattern;
 
 public class Console {
 
@@ -51,6 +52,14 @@ public class Console {
                             }
                             case LogOutput: case Stdout: {
                                 Config.argSetting.get(option).argValue = new PrintStream(path);
+                                break;
+                            }
+                            case OptLevel: {
+                                Pattern pattern = Pattern.compile("[0-9]*");
+                                if (!pattern.matcher(path).matches()) {
+                                    throw new UnknownArgument(path);
+                                }
+                                Config.argSetting.get(option).argValue = Integer.parseInt(path);
                                 break;
                             }
                             default: {

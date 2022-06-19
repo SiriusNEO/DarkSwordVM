@@ -12,13 +12,72 @@ Machine Code: RV32I, running in ravel.
 
 
 
+![](https://img.shields.io/badge/build-passing-success) ![](https://img.shields.io/badge/Interpreter-passing all testcases-success) ![](https://img.shields.io/badge/JIT-passing all testcases-success)
+
+
+
+## Design
+
+```mermaid
+graph LR
+A[src: .ll file]
+B[ParseTree]
+C[Running IR]
+D[Compiling IR]
+E[Interpreter]
+F[JIT Compiler]
+G[Profiler]
+H[Machine]
+I[Ravel]
+J[CodeGenerator]
+K[JITScheduler]
+subgraph Parser
+    A ==Antlr v4==> B
+    B ==ModuleBuilder2==>D
+    B ==ModuleBuilder1==>C
+end
+    C ==booting==> H
+    D ====> F
+    E ==Running On==>H
+
+subgraph Core
+    F ==compiled assembly==> E
+    E ==compile request==> F
+    H ==call ravel:by JNI==> I
+    I ==execute result==> H
+    E ==running info==>G
+    G ==hot select==> E
+    E ==compiled assembly==> J
+    J ==get code==> E
+    K ==signal:able to JIT==> E
+end
+```
+
+
+
+
+
 ## Usage
 
 This project is attached to [Masterball](https://github.com/SiriusNEO/Masterball) Compiler.
 
-Drag the directory `darksword` into the `src` directory in [Masterball](https://github.com/SiriusNEO/Masterball). and run `DarkSwordVM` .
+1. Drag the directory `darksword` into the `src` directory in [Masterball](https://github.com/SiriusNEO/Masterball). and run `DarkSwordVM` .
+2. Build the artifact with `DarkSwordVM.java` as the main class.
+3. Run `java -jar DarkSword.jar -h` to get the help doc.
 
+If you want to try the `JIT` part, a RISCV simulator [ravel](https://github.com/Engineev/ravel) is required to execute the RISCV Assembly (machine code).
 
+4. Get the library in `lib/ravel/libravel-sim.so` (which is a specially designed ravel for DSVM.)
+
+5. Run DarkSword with arguments: `-jit` `-ravel <the absolute path of libravel-sim.so>` 
+
+6. If the `connect` is OK when initialization, DarkSword will receive a ACK:
+
+   ```
+   [ravel] Connecting to DarkSword... Success. Test Word: Hello, ravel
+   ```
+
+   
 
 ## TODO
 

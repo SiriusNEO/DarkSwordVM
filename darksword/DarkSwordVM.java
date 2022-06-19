@@ -24,18 +24,40 @@ public class DarkSwordVM {
 
             Interpreter interpreter = new Interpreter(console);
 
-            // for (int i = 1; i <= 1000000; ++i)
-            //    RavelControl.connect("test" + i);
-
             Timer.start();
             interpreter.interpret();
+
+            // absolute running time
             Timer.display();
-            Statistics.show("ravel");
+
+            benchmark();
         }
         catch (Exception e) {
             errorHandle(e);
         }
         System.exit(0);
+    }
+
+    private static void benchmark() {
+        // a simple benchmark
+        int optLevel = (int) Config.getArgValue(Config.Option.OptLevel);
+
+        double interpreterWeight = 10, ravelWeight = 0.1,
+                o0Weight = 100, o1Weight = 300, o2Weight = 500;
+
+        double interpreterCost = interpreterWeight * Statistics.get("interpreter");
+        double ravelCost = ravelWeight * Statistics.get("ravel");
+        double compilingCost = 0;
+
+        switch (optLevel) {
+            case 0: compilingCost = o0Weight * Statistics.get("compile"); break;
+            case 1: compilingCost = o1Weight * Statistics.get("compile"); break;
+            case 2: compilingCost = o2Weight * Statistics.get("compile"); break;
+        }
+
+        System.out.println("[darksword] simple JIT benchmark: ");
+        System.out.printf("interpreter cost=%f, ravel cost=%f, compiling cost=%f, total=%f\n",
+                            interpreterCost, ravelCost, compilingCost, interpreterCost + ravelCost + compilingCost);
     }
 
     private static void errorHandle(Exception e) {

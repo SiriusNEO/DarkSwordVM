@@ -50,8 +50,8 @@ public class FuncProfiler {
         // some corner case
         blackList = new ArrayList<>();
         blackList.add(irModule.getMalloc());
-        // lackList.add(irModule.getBuiltinFunction("getString"));
-        // blackList.add(irModule.getBuiltinFunction("getInt"));
+        blackList.add(irModule.getBuiltinFunction("getString"));
+        blackList.add(irModule.getBuiltinFunction("getInt"));
     }
 
     public void funcInterpretedSubmit(IRFunction function) {

@@ -116,6 +116,7 @@ public class Interpreter implements InstVisitor {
             }
             else {
                 curInst.accept(this);
+                Statistics.plus("interpreter");
             }
 
             if (scheduler != null && scheduler.signal()) {
@@ -129,6 +130,10 @@ public class Interpreter implements InstVisitor {
                     generator.setRCMap(hottest, compiledFunc);
                     scheduler.acknowledged();
                     // Log.info(generator.getGeneratedCode(hottest, profiler.dependencyAnalysis(hottest), profiler.dirtyGlobalAnalysis(hottest)));
+
+                    hottest.blocks.forEach(block ->
+                        Statistics.plus("compile", block.instructions.size())
+                    );
                 }
             }
         }

@@ -49,14 +49,35 @@ public class JITCompiler {
         // IR Optimization
 
         Value.rename = true;
-        new Mem2Reg().runOnFunc(compiling);
-        new CFGSimplifier().runOnFunc(compiling);
-        new GVN().runOnFunc(compiling);
-        new SCCP().runOnFunc(compiling);
-        new ADCE().runOnFunc(compiling);
-        new CFGSimplifier().runOnFunc(compiling);
-        new LICM().runOnFunc(compiling);
-        new SSADestructor().runOnFunc(compiling);
+
+        int optLevel = (int) Config.getArgValue(Config.Option.OptLevel);
+
+        if (optLevel == 1) {
+            new Mem2Reg().runOnFunc(compiling);
+            new CFGSimplifier().runOnFunc(compiling);
+            new GVN().runOnFunc(compiling);
+            new SCCP().runOnFunc(compiling);
+            new ADCE().runOnFunc(compiling);
+            new CFGSimplifier().runOnFunc(compiling);
+            new LICM().runOnFunc(compiling);
+            new SSADestructor().runOnFunc(compiling);
+        }
+
+        if (optLevel == 2) {
+            new Mem2Reg().runOnFunc(compiling);
+            for (int i = 1; i <= 7; i++) {
+                new CFGSimplifier().runOnFunc(compiling);
+                new GVN().runOnFunc(compiling);
+                new SCCP().runOnFunc(compiling);
+                new ADCE().runOnFunc(compiling);
+                new CFGSimplifier().runOnFunc(compiling);
+                new IVTrans().runOnFunc(compiling);
+                new LICM().runOnFunc(compiling);
+                new LocalMO().runOnFunc(compiling);
+                new CFGSimplifier().runOnFunc(compiling);
+            }
+            new SSADestructor().runOnFunc(compiling);
+        }
 
         AsmBuilder asmBuilder = new AsmBuilder();
 

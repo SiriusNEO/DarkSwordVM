@@ -2,7 +2,7 @@ package darksword.jit;
 
 public class JITScheduler {
 
-    private static final int THRESHOLD = 100;
+    private static final int THRESHOLD = 1000;
     private int counter;
 
     public JITScheduler() {
