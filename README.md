@@ -43,7 +43,7 @@ end
 subgraph Core
     F ==compiled assembly==> E
     E ==compile request==> F
-    H ==call ravel by JNI==> I
+    H ==ravel call==> I
     I ==execute result==> H
     E ==running info==>G
     G ==hot select==> E
