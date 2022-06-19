@@ -53,31 +53,38 @@ subgraph Core
 end
 ```
 
-
-
-
-
 ## Usage
 
 This project is attached to [Masterball](https://github.com/SiriusNEO/Masterball) Compiler.
+
+
+
+#### Basic Usage (Run Interpreter)
 
 1. Drag the directory `darksword` into the `src` directory in [Masterball](https://github.com/SiriusNEO/Masterball). and run `DarkSwordVM` .
 2. Build the artifact with `DarkSwordVM.java` as the main class.
 3. Run `java -jar DarkSword.jar -h` to get the help doc.
 
+#### Try JIT
+
 If you want to try the `JIT` part, a RISCV simulator [ravel](https://github.com/Engineev/ravel) is required to execute the RISCV Assembly (machine code).
 
-4. Get the library in `lib/ravel/libravel-sim.so` (which is a specially designed ravel for DSVM.)
+1. Get the library in `lib/ravel/libravel-sim.so` (which is a specially designed ravel for DSVM.)
 
-5. Run DarkSword with arguments: `-jit` `-ravel <the absolute path of libravel-sim.so>` 
+2. Run DarkSword with arguments: `-jit` `-ravel <the absolute path of libravel-sim.so>` 
 
-6. If the `connect` is OK when initialization, DarkSword will receive a ACK:
+3. If the `connect` is OK when initialization, DarkSword will receive a ACK:
 
-   ```
-   [ravel] Connecting to DarkSword... Success. Test Word: Hello, ravel
-   ```
+```
+[ravel] Connecting to DarkSword... Success. Test Word: Hello, ravel
+```
 
-   
+#### Execute a `.mx` file
+
+1. Use Masterball to generate `.ll` file (unoptimized)
+2. Use it as the input of DarkSword.
+
+
 
 ## TODO
 
