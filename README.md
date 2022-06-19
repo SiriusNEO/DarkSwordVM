@@ -12,7 +12,7 @@ Machine Code: RV32I, running in ravel.
 
 
 
-![](https://img.shields.io/badge/build-passing-success) ![](https://img.shields.io/badge/Interpreter-passing all testcases-success) ![](https://img.shields.io/badge/JIT-passing all testcases-success)
+![](https://img.shields.io/badge/build-passing-success)   ![](https://img.shields.io/badge/Interpreter-passing all testcases-success)   ![](https://img.shields.io/badge/JIT-passing all testcases-success)
 
 
 
