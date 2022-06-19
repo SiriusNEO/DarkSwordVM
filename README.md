@@ -43,13 +43,13 @@ end
 subgraph Core
     F ==compiled assembly==> E
     E ==compile request==> F
-    H ==call ravel:by JNI==> I
+    H ==call ravel by JNI==> I
     I ==execute result==> H
     E ==running info==>G
     G ==hot select==> E
     E ==compiled assembly==> J
     J ==get code==> E
-    K ==signal:able to JIT==> E
+    K ==signal of JIT==> E
 end
 ```
 
