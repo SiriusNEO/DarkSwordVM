@@ -273,7 +273,7 @@ public class Machine {
     public void storeBySize(int addr, int dat, int size) {
         for (int i = 0; i < size; i++) {
             // Log.info((int) (byte) ((dat >> 8*(size-1-i) & 0xff)));
-            // Small-Endian
+            // Big-Endian store
             byteStore(addr+i, (byte) ((dat >> 8*i) & 0xff));
         }
     }
